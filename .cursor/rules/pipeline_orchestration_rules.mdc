@@ -1,0 +1,10 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Design the main application logic (e.g., in `src/listener.py` or similar) to orchestrate the sequence of processing steps.
+- Implement comprehensive error handling at each stage of the pipeline.
+- Use custom error utilities (e.g., `src/utils_error.py`) and clear logging to track progress and diagnose issues.
+- Ensure idempotent behavior where appropriate, or clear mechanisms for reprocessing failed items.
+- Profile code to identify bottlenecks, especially in I/O operations (downloads, file access) and model inference.

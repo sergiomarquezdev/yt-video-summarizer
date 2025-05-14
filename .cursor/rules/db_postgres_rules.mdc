@@ -1,0 +1,14 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Use `psycopg2-binary` for connecting to and interacting with the PostgreSQL database.
+- Design and manage schemas for storing:
+    - Video metadata (source URL, title, duration, download paths).
+    - Transcripts from ASR and OCR.
+    - Results of VAD and music detection.
+    - Extracted keywords and assigned categories.
+    - Processing status and error logs for pipeline stages.
+- Optimize database queries and transactions.
+- Key Dependencies: `psycopg2-binary`

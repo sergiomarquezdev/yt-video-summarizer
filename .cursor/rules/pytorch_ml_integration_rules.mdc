@@ -1,0 +1,9 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- **Core Framework**: Use PyTorch as the primary framework for loading and running ML models.
+- Utilize setup scripts (e.g., in `setup/`) to download and organize pre-trained models (e.g., in `models/`).
+- For ML models, ensure efficient use of GPU resources if available.
+- Key Dependencies: `torch`, `torchaudio`

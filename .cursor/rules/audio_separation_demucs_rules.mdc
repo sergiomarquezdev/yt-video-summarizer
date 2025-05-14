@@ -1,0 +1,7 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- **Music/Speech Separation**: Use Demucs (`demucs`) for separating audio sources (vocals, music, etc.).
+- Key Dependencies: `demucs`

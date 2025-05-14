@@ -1,0 +1,9 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Implement listeners for Google Cloud Pub/Sub (`google-cloud-pubsub`) to receive messages triggering the video processing pipeline.
+- Parse incoming message data (e.g., video URL, metadata).
+- Publish results, status updates, or error messages back to Pub/Sub topics if required by the architecture.
+- Key Dependencies: `google-cloud-pubsub`

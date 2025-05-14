@@ -1,0 +1,13 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Utilize JSON configuration files (e.g., `config/settings.json`) for managing:
+    - Model paths and versions.
+    - API keys and endpoints (e.g., Azure OpenAI).
+    - Processing thresholds (e.g., VAD sensitivity, confidence scores).
+    - Pub/Sub topic and subscription IDs.
+    - Database connection details.
+- Rely on external configuration files (JSON) for adaptable parameters.
+- Key Dependencies: `python-dotenv` (for environment variable management, often used with config)

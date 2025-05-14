@@ -1,0 +1,13 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- Use the `openai` Python library to interact with GPT models.
+- Focus on tasks such as:
+    - Text cleaning and normalization.
+    - Generating summaries or coherent narratives from multiple sources (e.g., ASR and OCR).
+    - Keyword extraction.
+    - Content categorization based on predefined taxonomies.
+- Handle API responses, rate limits, and errors gracefully.
+- Key Dependencies: `openai` (for GPT models)

@@ -1,0 +1,7 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+- **Audio Understanding**: Leverage CLAP models (e.g., `laion/clap-htsat-unfused` via `transformers`) for classifying audio content (e.g., spoken vs. sung voice).
+- Key Dependencies: `transformers`
