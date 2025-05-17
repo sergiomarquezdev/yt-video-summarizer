@@ -1,7 +1,7 @@
 ---
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 - Utilize JSON configuration files (e.g., `config/settings.json`) for managing:
     - Model paths and versions.

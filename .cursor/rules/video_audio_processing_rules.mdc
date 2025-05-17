@@ -1,7 +1,7 @@
 ---
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 - Implement robust video downloading from sources like Vimeo (API interaction) and YouTube (`yt-dlp`).
 - Handle video-to-audio conversion efficiently, likely using `ffmpeg` (via libraries like `pydub` or direct subprocess calls).

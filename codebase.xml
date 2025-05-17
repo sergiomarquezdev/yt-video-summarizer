@@ -1,0 +1,1325 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: .cursor/, .cursorrules
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+.python-version
+README.md
+requirements-dev.txt
+requirements.txt
+yt_transcriber/config.py
+yt_transcriber/downloader.py
+yt_transcriber/main.py
+yt_transcriber/transcriber.py
+yt_transcriber/utils.py
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# Entornos virtuales
+venv/
+.venv/
+ENV/
+env/
+
+# Archivos de Python compilados y caché
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos temporales y de salida (según config.py)
+temp_files/
+output_transcripts/
+
+# Logs
+*.log
+
+# Archivos de configuración local (si se usan)
+.env
+
+# Archivos del editor/IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Test coverage reports
+.coverage
+htmlcov/
+</file>
+
+<file path=".python-version">
+3.13
+</file>
+
+<file path="requirements-dev.txt">
+numpy
+soundfile
+</file>
+
+<file path="requirements.txt">
+yt-dlp
+openai-whisper
+torch
+fastapi
+uvicorn[standard] # [standard] incluye dependencia para websockets y otros, útil
+python-dotenv # Para la gestión de configuración por entorno
+</file>
+
+<file path="yt_transcriber/config.py">
+# Configuraciones para la aplicación de transcripción de YouTube
+import os
+
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde un archivo .env si existe
+# Esto permite anular las configuraciones por defecto mediante un archivo .env local
+# que no se sube al control de versiones.
+load_dotenv()
+
+# --- Configuración del Modelo Whisper ---
+# Intenta leer desde variables de entorno, si no, usa el valor por defecto.
+# Ejemplo en .env: WHISPER_MODEL_NAME="small"
+WHISPER_MODEL_NAME = os.getenv(
+    "WHISPER_MODEL_NAME", "base"
+)  # Modelo por defecto, ej: "tiny", "base", "small", "medium", "large"
+
+# Ejemplo en .env: WHISPER_DEVICE="cuda"
+WHISPER_DEVICE = os.getenv(
+    "WHISPER_DEVICE", "cpu"
+)  # Dispositivo para Whisper, ej: "cpu", "cuda" si hay GPU
+
+
+# --- Directorios ---
+# Estos también pueden ser configurados vía .env si se desea flexibilidad en el despliegue.
+# Ejemplo en .env: TEMP_DOWNLOAD_DIR="my_custom_temp/"
+TEMP_DOWNLOAD_DIR = os.getenv(
+    "TEMP_DOWNLOAD_DIR", "temp_files/"
+)  # Directorio para archivos temporales (videos, audios)
+
+# Ejemplo en .env: OUTPUT_TRANSCRIPTS_DIR="my_custom_output/"
+OUTPUT_TRANSCRIPTS_DIR = os.getenv(
+    "OUTPUT_TRANSCRIPTS_DIR", "output_transcripts/"
+)  # Directorio para las transcripciones guardadas
+</file>
+
+<file path="yt_transcriber/downloader.py">
+# Módulo para descargar videos de YouTube y extraer audio
+
+import logging
+import os
+
+import yt_dlp
+
+logger = logging.getLogger(__name__)
+# La configuración de logging basicConfig se maneja en main.py
+
+
+# Excepción personalizada para errores de descarga
+class DownloadError(Exception):
+    pass
+
+
+def download_and_extract_audio(
+    youtube_url: str, temp_dir: str, unique_job_id: str
+) -> tuple[str | None, str, str | None]:  # Devuelve (video_path, audio_path, video_id)
+    """
+    Descarga un video de YouTube, extrae su audio y lo guarda en formato WAV.
+    Los nombres de archivo se basan en el ID del video y un ID de trabajo único.
+
+    Args:
+        youtube_url: La URL del video de YouTube.
+        temp_dir: El directorio donde se guardarán los archivos temporales.
+        unique_job_id: Un identificador único para esta tarea de descarga/transcripción.
+
+    Returns:
+        Una tupla (ruta_video_temporal, ruta_audio_wav, video_id).
+        ruta_video_temporal puede ser None si el video no se guarda o no se encuentra.
+        video_id puede ser None si no se puede extraer.
+
+    Raises:
+        DownloadError: Si ocurre un error durante la descarga o extracción de audio.
+    """
+    logger.info(f"Iniciando descarga para URL: {youtube_url}, job_id: {unique_job_id}")
+
+    video_id: str | None = None
+
+    ydl_opts_template = {
+        "format": "bestvideo[ext=mp4][height<=1080]+bestaudio/best[ext=mp4][height<=1080]/best",
+        "quiet": False,
+        "noplaylist": True,
+        "keepvideo": True,  # Necesario para tener la ruta del video si se retiene
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "wav",
+                "nopostoverwrites": False,
+            }
+        ],
+        "postprocessor_args": {"FFmpegExtractAudio": ["-ar", "16000", "-ac", "1"]},
+        "logger": logger,
+        "progress_hooks": [
+            lambda d: logger.debug(
+                f"yt-dlp hook: {d['status']}, info: {d.get('filename')}"
+            )
+            if d["status"] in ["downloading", "finished"]
+            else None
+        ],
+    }
+
+    downloaded_video_path: str | None = None
+    expected_audio_wav_path: str
+
+    try:
+        # Primero, obtener el video_id para usarlo en los nombres de archivo.
+        logger.debug(f"Extrayendo info para video ID de: {youtube_url}")
+        with yt_dlp.YoutubeDL(
+            {"quiet": True, "noplaylist": True, "logger": logger}
+        ) as ydl_info:
+            info_dict_pre = ydl_info.extract_info(youtube_url, download=False)
+            video_id = (
+                info_dict_pre.get("id") if isinstance(info_dict_pre, dict) else None
+            )
+
+        if not video_id:
+            logger.warning(
+                f"No se pudo extraer video_id para {youtube_url}. Usando fallback."
+            )
+            video_id = f"unknownID_{unique_job_id[:8]}"  # Fallback ID más corto
+        else:
+            logger.info(f"Video ID extraído: {video_id} para {youtube_url}")
+
+        base_filename_no_ext = f"{video_id}_{unique_job_id}"
+        video_output_template = os.path.join(
+            temp_dir, f"{base_filename_no_ext}.%(ext)s"
+        )
+        expected_audio_wav_path = os.path.join(temp_dir, f"{base_filename_no_ext}.wav")
+
+        ydl_opts = ydl_opts_template.copy()
+        ydl_opts["outtmpl"] = video_output_template
+
+        logger.debug(f"Opciones finales de yt-dlp para descarga: {ydl_opts}")
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict_download = ydl.extract_info(youtube_url, download=True)
+            # El nombre de archivo descargado puede incluir información de la extensión real.
+            downloaded_video_path = ydl.prepare_filename(info_dict_download)
+
+            if not downloaded_video_path or not os.path.exists(downloaded_video_path):
+                logger.warning(
+                    f"Ruta de video no determinada o archivo no existe: '{downloaded_video_path}' (ID: '{video_id}')."
+                )
+                downloaded_video_path = None
+            else:
+                logger.info(f"Video descargado a: {downloaded_video_path}")
+
+            # El audio debe existir en expected_audio_wav_path por la config del postprocesador.
+            if os.path.exists(expected_audio_wav_path):
+                logger.info(
+                    f"Audio extraído correctamente a: {expected_audio_wav_path}"
+                )
+                return (
+                    downloaded_video_path,
+                    expected_audio_wav_path,
+                    video_id,
+                )  # video_path puede ser None
+            else:
+                # Fallback por si el nombre del WAV no es exactamente el esperado.
+                possible_audio_files = [
+                    f
+                    for f in os.listdir(temp_dir)
+                    if f.startswith(base_filename_no_ext) and f.endswith(".wav")
+                ]
+                if possible_audio_files:
+                    actual_audio_path = os.path.join(temp_dir, possible_audio_files[0])
+                    logger.warning(
+                        f"Audio WAV no en '{expected_audio_wav_path}', pero encontrado en '{actual_audio_path}'."
+                    )
+                    return downloaded_video_path, actual_audio_path, video_id
+                else:
+                    logger.error(
+                        f"Fallo crítico: Audio WAV no encontrado. Esperado: '{expected_audio_wav_path}' (base: {base_filename_no_ext})."
+                    )
+                    if downloaded_video_path and os.path.exists(downloaded_video_path):
+                        try:
+                            os.remove(downloaded_video_path)
+                        except OSError as e_clean:
+                            logger.error(
+                                f"Error limpiando video '{downloaded_video_path}' tras fallo de audio: {e_clean}"
+                            )
+                    raise DownloadError(
+                        f"Extracción de audio falló para {base_filename_no_ext}.wav"
+                    )
+
+    except yt_dlp.utils.DownloadError as e_yt:
+        logger.error(f"Error de yt-dlp para '{youtube_url}': {e_yt}")
+        raise DownloadError(f"yt-dlp falló: {e_yt}") from e_yt
+    except Exception as e_gen:
+        logger.error(
+            f"Error inesperado en descarga para '{youtube_url}': {e_gen}", exc_info=True
+        )
+        raise DownloadError(f"Error general en descarga: {e_gen}") from e_gen
+
+
+if __name__ == "__main__":
+    # Ejemplo de uso (requiere crear directorios temp_files/)
+    test_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    test_temp_dir = "../temp_files/"  # Asumiendo ejecución desde yt_transcriber/
+    from datetime import datetime
+
+    test_job_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
+
+    if not os.path.exists(test_temp_dir):
+        os.makedirs(test_temp_dir)
+
+    logger.info("--- Iniciando prueba de descarga del módulo downloader ---")
+    try:
+        video_path, audio_path, returned_video_id = download_and_extract_audio(
+            test_url, test_temp_dir, test_job_id
+        )
+        logger.info(f"ID de video devuelto por downloader: {returned_video_id}")
+
+        if audio_path and os.path.exists(audio_path):
+            logger.info(f"Prueba de downloader: Audio en: {audio_path}")
+            logger.info(f"Tamaño del audio: {os.path.getsize(audio_path)} bytes")
+            if video_path and os.path.exists(video_path):
+                logger.info(
+                    f"Video en: {video_path}, Tamaño: {os.path.getsize(video_path)} bytes"
+                )
+            else:
+                logger.info(
+                    "Video no retenido o no encontrado en prueba de downloader."
+                )
+
+            # Limpieza opcional de archivos de prueba
+            # logger.info("Limpiando archivos de prueba...")
+            # try:
+            #     if video_path and os.path.exists(video_path): os.remove(video_path)
+            #     os.remove(audio_path) # audio_path debe existir si llegamos aquí
+            #     logger.info("Archivos de prueba de downloader eliminados.")
+            # except OSError as e:
+            #     logger.error(f"Error eliminando archivos de prueba de downloader: {e}")
+        else:
+            logger.error(
+                "Prueba de downloader falló: no se obtuvo ruta de audio o el archivo no existe."
+            )
+    except DownloadError as e:
+        logger.error(f"Error en prueba de downloader: {e}")
+    logger.info("--- Fin de prueba de descarga del módulo downloader ---")
+</file>
+
+<file path="yt_transcriber/main.py">
+# Punto de entrada principal de la aplicación FastAPI
+
+import logging
+import os
+from datetime import datetime
+
+import torch  # Necesario para la comprobación de CUDA y carga del modelo
+import whisper  # Necesario para cargar el modelo y type hints
+from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import Request as FastAPIRequest
+from fastapi.concurrency import run_in_threadpool
+from pydantic import (
+    BaseModel,  # BaseModel para modelos de datos
+    HttpUrl,  # HttpUrl para validación de URL
+)
+
+from yt_transcriber import config, downloader, transcriber, utils
+from yt_transcriber.downloader import DownloadError
+from yt_transcriber.transcriber import (
+    TranscriptionError,
+    TranscriptionResult,
+)
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        # Podrías añadir FileHandler aquí si quieres logs persistentes
+    ],
+)
+
+app = FastAPI(
+    title="YouTube Transcription Service",
+    description="API para descargar videos de YouTube, transcribirlos y guardar el texto.",
+    version="0.1.0",
+)
+
+
+# --- Evento de Inicio de la Aplicación para Cargar el Modelo Whisper ---
+@app.on_event("startup")
+async def load_whisper_model_on_startup():
+    logger.info("Evento de inicio: Cargando modelo Whisper...")
+    device_to_use = config.WHISPER_DEVICE
+    if device_to_use == "cuda" and not torch.cuda.is_available():
+        logger.warning(
+            "CUDA no disponible según torch.cuda.is_available(). Cambiando a CPU para Whisper."
+        )
+        device_to_use = "cpu"
+
+    try:
+        model = whisper.load_model(config.WHISPER_MODEL_NAME, device=device_to_use)
+        app.state.whisper_model = model
+        app.state.whisper_device_used = (
+            device_to_use  # Guardar el dispositivo realmente usado
+        )
+        logger.info(
+            f"Modelo Whisper '{config.WHISPER_MODEL_NAME}' cargado exitosamente en '{device_to_use}'."
+        )
+    except Exception as e:
+        logger.critical(
+            f"Fallo CRÍTICO al cargar modelo Whisper '{config.WHISPER_MODEL_NAME}' en '{device_to_use}'. Error: {e}",
+            exc_info=True,
+        )
+        # Permitir que la aplicación falle si el modelo no se carga (componente crítico).
+        # Alternativa: app.state.whisper_model = None y chequear en endpoints,
+        # pero fallar rápido es a menudo preferible para dependencias críticas.
+        raise RuntimeError(f"No se pudo cargar el modelo Whisper: {e}") from e
+
+
+# --- Modelos Pydantic para validación de datos ---
+class TranscriptionRequest(BaseModel):
+    youtube_url: HttpUrl  # Validada por Pydantic como URL HTTP/HTTPS
+    title: str
+
+
+class TranscriptionResponse(BaseModel):
+    message: str
+    filename: str
+    original_url: HttpUrl
+    transcription_length: int
+    detected_language: str | None = None  # Idioma detectado por Whisper
+    transcript_preview: str | None = (
+        None  # Vista previa de la transcripción (primeros 200 chars)
+    )
+
+
+class ErrorResponse(BaseModel):
+    detail: str
+
+
+# --- Lógica del Endpoint ---
+@app.post(
+    "/transcribe",
+    response_model=TranscriptionResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Entrada inválida"},
+        422: {
+            "model": ErrorResponse,
+            "description": "Error de validación Pydantic (URL/título)",
+        },
+        500: {"model": ErrorResponse, "description": "Error interno del servidor"},
+        503: {
+            "model": ErrorResponse,
+            "description": "Error en descarga/procesamiento del video",
+        },
+    },
+)
+async def transcribe_video_endpoint(
+    fastapi_request: FastAPIRequest,  # Objeto Request de FastAPI para acceder a app.state
+    transcription_request: TranscriptionRequest,  # Datos de la petición validados por Pydantic
+    background_tasks: BackgroundTasks,  # Para tareas en segundo plano (limpieza)
+):
+    """
+    Endpoint para descargar un video de YouTube, transcribirlo y guardar el texto.
+
+    Args:
+        fastapi_request: La instancia de la petición de FastAPI.
+        transcription_request: Los datos de la petición validados.
+        background_tasks: Utilidad de FastAPI para tareas en segundo plano.
+    """
+    logger.info(
+        f"Petición de transcripción para URL: {transcription_request.youtube_url}, Título: {transcription_request.title}"
+    )
+
+    # Verificar si el modelo Whisper está cargado (desde app.state)
+    if (
+        not hasattr(fastapi_request.app.state, "whisper_model")
+        or fastapi_request.app.state.whisper_model is None
+    ):
+        logger.error("Modelo Whisper no cargado. No se puede procesar la petición.")
+        raise HTTPException(
+            status_code=503,  # Service Unavailable
+            detail="Error interno: Modelo de transcripción no disponible.",
+        )
+
+    video_path_temp: str | None = None
+    audio_path_temp: str | None = None
+    downloaded_video_id: str | None = None  # ID del video extraído por el downloader
+
+    unique_job_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
+
+    try:
+        # Paso 1: Asegurar que los directorios de trabajo existen
+        utils.ensure_dir_exists(config.TEMP_DOWNLOAD_DIR)
+        utils.ensure_dir_exists(config.OUTPUT_TRANSCRIPTS_DIR)
+
+        # Normalizar el título proporcionado por el usuario para el nombre de archivo final.
+        user_provided_title = utils.normalize_title_for_filename(
+            transcription_request.title
+        )
+        if not user_provided_title:  # Si la normalización resulta en un string vacío
+            logger.warning(
+                f"Título original '{transcription_request.title}' normalizado a vacío. Usando 'untitled'."
+            )
+            user_provided_title = "untitled"
+
+        logger.info(
+            f"Procesando: URL={transcription_request.youtube_url}, TítuloBase={user_provided_title}, JobID={unique_job_id}"
+        )
+
+        # downloader.download_and_extract_audio devuelve (video_path|None, audio_path, video_id|None)
+        (
+            temp_video_path_or_empty,
+            audio_path_temp,
+            downloaded_video_id,
+        ) = await run_in_threadpool(
+            downloader.download_and_extract_audio,
+            str(transcription_request.youtube_url),
+            config.TEMP_DOWNLOAD_DIR,
+            unique_job_id,  # Se pasa el job_id para nombres de archivo únicos en downloader
+        )
+        video_path_temp = temp_video_path_or_empty if temp_video_path_or_empty else None
+
+        if not downloaded_video_id:
+            downloaded_video_id = (
+                "unknownVideoID"  # Fallback si downloader no pudo obtenerlo
+            )
+            logger.warning(
+                f"Downloader no retornó video_id; usando {downloaded_video_id}."
+            )
+
+        logger.info(
+            f"Descarga OK. Audio: {audio_path_temp}, Video: {video_path_temp}, VideoID: {downloaded_video_id}"
+        )
+
+        # La condición crítica es la existencia del archivo de audio.
+        # video_path_temp (si es None) se maneja en la limpieza; su ausencia no debe
+        # detener la transcripción si el audio está presente.
+        if not audio_path_temp:
+            logger.error(
+                f"Fallo crítico: No se obtuvo ruta al archivo de audio (audio_path_temp es None o vacío)."
+            )
+            # Si audio_path_temp es None, video_path_temp podría existir si solo falló la extracción de audio.
+            if video_path_temp and os.path.exists(
+                video_path_temp
+            ):  # Limpiar video si existe
+                logger.info(
+                    f"Programando limpieza de video {video_path_temp} por fallo de audio."
+                )
+                background_tasks.add_task(utils.cleanup_temp_files, [video_path_temp])
+            raise HTTPException(
+                status_code=503,
+                detail="Error procesando video: No se pudo obtener el archivo de audio.",
+            )
+
+        logger.info(
+            f"Audio para transcribir: {audio_path_temp}, Video temp: {video_path_temp}"
+        )
+
+        # 3. Transcribir el archivo de audio
+        logger.info(f"Llamando a transcriber para: {audio_path_temp}")
+        # Usar el modelo del app.state
+        whisper_model_instance = fastapi_request.app.state.whisper_model
+        transcription_result: TranscriptionResult = await run_in_threadpool(
+            transcriber.transcribe_audio_file,
+            audio_path_temp,
+            whisper_model_instance,  # Pasar la instancia del modelo cargado
+        )
+
+        if (
+            transcription_result is None or transcription_result.text is None
+        ):  # Chequeo más robusto
+            # Si transcribe_audio_file fue modificado para devolver None en error,
+            # o si TranscriptionResult.text puede ser None.
+            logger.error(
+                "Fallo en la transcripción del audio o texto vacío. No se puede continuar."
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Error interno: La transcripción del audio falló o no produjo texto.",
+            )
+
+        logger.info(
+            f"Audio transcrito exitosamente. Longitud: {len(transcription_result.text)} caracteres. Idioma: {transcription_result.language}"
+        )
+
+        # 4. Guardar la transcripción en un archivo .txt
+        logger.info(
+            f"Guardando transcripción con título normalizado: {user_provided_title}"
+        )
+        # Construir nombre de archivo de salida final
+        if user_provided_title in ["untitled", "default_title"]:
+            output_filename_base = (
+                f"transcription_vid_{downloaded_video_id}_job_{unique_job_id}"
+            )
+        else:
+            output_filename_base = (
+                f"{user_provided_title}_vid_{downloaded_video_id}_job_{unique_job_id}"
+            )
+
+        output_file_path = await run_in_threadpool(
+            utils.save_transcription_to_file,
+            transcription_result.text,  # Usar el texto del objeto resultado
+            output_filename_base,  # Usar el nombre base construido
+            config.OUTPUT_TRANSCRIPTS_DIR,
+        )
+        logger.info(f"Transcripción guardada en: {output_file_path}")
+
+        # 5. Programar limpieza de archivos temporales
+        files_to_clean = []
+        if video_path_temp:
+            files_to_clean.append(video_path_temp)
+        if audio_path_temp:
+            files_to_clean.append(audio_path_temp)
+
+        if files_to_clean:
+            logger.info(f"Programando limpieza en segundo plano para: {files_to_clean}")
+            background_tasks.add_task(utils.cleanup_temp_files, files_to_clean)
+
+        # 6. Devolver respuesta de éxito
+        preview_text = transcription_result.text  # Usar el texto del objeto resultado
+        preview = (
+            preview_text[:200] + "..." if len(preview_text) > 200 else preview_text
+        )
+
+        # Asegurarse de que output_file_path es un string antes de usar basename
+        final_filename = (
+            os.path.basename(output_file_path)
+            if output_file_path
+            else f"{output_filename_base}.txt"
+        )
+
+        response_data = TranscriptionResponse(
+            message="Transcripción completada exitosamente.",
+            filename=final_filename,  # Usar el nombre de archivo base
+            original_url=transcription_request.youtube_url,
+            transcription_length=len(transcription_result.text),
+            detected_language=transcription_result.language,
+            transcript_preview=preview,
+        )
+        return response_data
+
+    except DownloadError as e:
+        logger.error(
+            f"Fallo en descarga para {transcription_request.youtube_url}: {e}",
+            exc_info=True,
+        )
+        raise HTTPException(status_code=503, detail=f"Error descargando video: {e}")
+    except TranscriptionError as e:
+        logger.error(
+            f"Fallo en transcripción para {transcription_request.youtube_url}: {e}",
+            exc_info=True,
+        )
+        # Limpiar archivos si la transcripción falla pero la descarga tuvo éxito
+        files_to_clean_on_transcription_error = [video_path_temp, audio_path_temp]
+        if any(
+            f
+            for f in files_to_clean_on_transcription_error
+            if f is not None and os.path.exists(f)
+        ):  # Solo limpiar si hay algo que limpiar
+            logger.info(
+                f"Limpiando archivos temporales después de error de transcripción: {files_to_clean_on_transcription_error}"
+            )
+            utils.cleanup_temp_files_sync(files_to_clean_on_transcription_error)
+        raise HTTPException(status_code=500, detail=f"Error transcribiendo audio: {e}")
+    except Exception as e:
+        logger.critical(
+            f"Error inesperado procesando {transcription_request.youtube_url}: {e}",
+            exc_info=True,
+        )
+        # Similar limpieza aquí si es aplicable y los paths son conocidos
+        files_to_clean_on_general_error = [video_path_temp, audio_path_temp]
+        if any(
+            f
+            for f in files_to_clean_on_general_error
+            if f is not None and os.path.exists(f)
+        ):  # Solo limpiar si hay algo que limpiar
+            utils.cleanup_temp_files_sync(files_to_clean_on_general_error)
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {e}")
+
+
+# --- Ejemplo de cómo ejecutar con Uvicorn (para desarrollo) ---
+# En la terminal, desde el directorio raíz del proyecto (yt-transcription-categorization):
+# uvicorn yt_transcriber.main:app --reload
+#
+# La aplicación estará disponible en http://127.0.0.1:8000
+# La documentación interactiva de la API estará en http://127.0.0.1:8000/docs
+
+# (El if __name__ == "__main__": no es la forma idiomática de ejecutar uvicorn para producción,
+# pero puede ser útil para pruebas rápidas si no se usa el comando uvicorn directamente)
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
+</file>
+
+<file path="yt_transcriber/transcriber.py">
+# Módulo para transcribir archivos de audio usando Whisper
+
+import dataclasses
+import logging
+import os
+
+# from dataclasses import dataclass # Ya no se usa así, se usa import dataclasses y dataclasses.dataclass
+# torch ya no es necesario aquí para la lógica principal, se usará en main.py para la carga
+# import torch
+import whisper  # whisper sigue siendo necesario para el tipo whisper.Whisper y DecodingOptions
+
+# Configurar un logger simple para este módulo
+logger = logging.getLogger(__name__)
+
+
+# Modelo de datos para el resultado de la transcripción
+@dataclasses.dataclass
+class TranscriptionResult:
+    text: str
+    language: str | None = None
+
+
+# Excepción personalizada para errores de transcripción
+class TranscriptionError(Exception):
+    pass
+
+
+# Ya no se necesita la caché de modelo global aquí
+# _loaded_model = None
+# _loaded_model_name = None
+# _loaded_model_device = None
+
+
+def transcribe_audio_file(
+    audio_path: str,
+    model: whisper.Whisper,  # Acepta el modelo cargado
+) -> TranscriptionResult:
+    """
+    Transcribe un archivo de audio utilizando el modelo Whisper proporcionado.
+
+    Args:
+        audio_path: Ruta al archivo de audio WAV.
+        model: Instancia del modelo Whisper cargado.
+
+    Returns:
+        Un objeto TranscriptionResult con el texto y el idioma detectado.
+
+    Raises:
+        TranscriptionError: Si ocurre un error durante la transcripción.
+    """
+    logger.info(
+        f"Iniciando transcripción para: {audio_path} usando modelo Whisper pre-cargado."
+    )
+
+    if not os.path.exists(audio_path):
+        logger.error(
+            f"Error de transcripción: Archivo de audio no encontrado en {audio_path}"
+        )
+        raise TranscriptionError(f"Archivo de audio no encontrado: {audio_path}")
+
+    # La verificación de dispositivo y la carga del modelo ahora ocurren en main.py
+    # if device == "cuda" and not torch.cuda.is_available():
+    #     logger.warning("CUDA no está disponible. Cambiando a CPU.")
+    #     device = "cpu"
+
+    try:
+        # El modelo ya está cargado y se pasa como argumento
+        logger.info(f"Transcribiendo archivo: {audio_path}")
+        options = whisper.DecodingOptions(
+            language=None,  # language=None para auto-detección
+            without_timestamps=True,
+        )
+        # Usar el modelo proporcionado
+        result = model.transcribe(audio_path, **dataclasses.asdict(options))
+
+        transcribed_text = result.get("text")
+        detected_language = result.get("language")
+
+        if not isinstance(transcribed_text, str):
+            logger.error(
+                f"El resultado de la transcripción para 'text' no es un string: {type(transcribed_text)}"
+            )
+            raise TranscriptionError("Formato de texto de transcripción inesperado.")
+
+        if detected_language is not None and not isinstance(detected_language, str):
+            logger.warning(
+                f"El idioma detectado no es un string (valor: {detected_language}). Se tratará como None."
+            )
+            detected_language = None
+
+        logger.info(
+            f"Transcripción completada. Idioma detectado: {detected_language}. Longitud: {len(transcribed_text)} chars."
+        )
+        return TranscriptionResult(text=transcribed_text, language=detected_language)
+
+    except FileNotFoundError:  # Aunque os.path.exists lo cubre, por si acaso.
+        logger.error(
+            f"Error de transcripción (FileNotFound): Archivo de audio no encontrado en {audio_path}"
+        )
+        raise TranscriptionError(
+            f"Archivo de audio no encontrado durante operación Whisper: {audio_path}"
+        )
+    except Exception as e:
+        logger.error(
+            f"Error inesperado durante transcripción de '{audio_path}': {e}",
+            exc_info=True,
+        )
+        # Ya no se invalida el modelo aquí, la gestión es externa.
+        # _loaded_model = None
+        raise TranscriptionError(f"Error inesperado en Whisper: {e}")
+
+
+if __name__ == "__main__":
+    # El bloque de prueba __main__ ha cambiado significativamente debido a que
+    # la carga del modelo Whisper ahora es externa (manejada por main.py).
+    # Para probar este módulo de forma aislada, necesitarías cargar manualmente
+    # un modelo Whisper y pasarlo a la función transcribe_audio_file.
+
+    logger.info("--- Bloque de prueba __main__ de transcriber.py ---")
+    logger.warning("Funcionalidad de prueba directa de este módulo ha cambiado.")
+    logger.warning(
+        "Modelo Whisper ahora se carga en la aplicación principal (main.py)."
+    )
+    logger.info("Para probar transcribe_audio_file aisladamente:")
+    logger.info(
+        "  1. Asegúrate de tener un archivo WAV de prueba (ej. 'test_audio_sample.wav')."
+    )
+    logger.info("  2. Carga manualmente un modelo Whisper en este script.")
+    logger.info("  3. Pasa la instancia del modelo y la ruta del audio a la función.")
+    logger.info("Ejemplo conceptual de cómo probarlo:")
+    logger.info("  # import whisper")
+    logger.info("  # import os")
+    logger.info("  # test_model_instance = whisper.load_model('tiny', device='cpu')")
+    logger.info(
+        "  # audio_file = 'test_audio_sample.wav' # Asegúrate que exista o créalo"
+    )
+    logger.info("  # if os.path.exists(audio_file):")
+    logger.info(
+        '  #     try:\n        #         transcription = transcribe_audio_file(audio_file, test_model_instance)\n        #         if transcription:\n        #             print(f"Transcripción: {transcription.text}")\n        #     except TranscriptionError as e_script:\n        #         print(f"Error en prueba: {e_script}")\n        # else:\n        #     print(f"Archivo de audio de prueba \'{audio_file}\' no encontrado.\')'
+    )
+</file>
+
+<file path="yt_transcriber/utils.py">
+import logging
+import os
+import re
+
+logger = logging.getLogger(__name__)
+
+
+def normalize_title_for_filename(text: str) -> str:
+    """
+    Normaliza un texto para ser usado como parte de un nombre de archivo.
+    - Conserva alfanuméricos, espacios y guiones.
+    - Elimina otros caracteres.
+    - Reemplaza espacios/guiones múltiples con un solo guion bajo.
+    - Elimina guiones bajos al inicio/final.
+    """
+    if not text:
+        return "untitled"
+    # Paso 1: Conservar solo alfanuméricos, espacios, y guiones.
+    # Eliminar caracteres que no sean palabras (alfanuméricos y _), espacios, o guiones.
+    text = re.sub(r"[^\w\s-]", "", text)
+    # Paso 2: Reemplazar secuencias de espacios y/o guiones con un solo guion bajo.
+    text = re.sub(r"[\s-]+", "_", text)
+    # Paso 3: Eliminar guiones bajos al principio o final del nombre (si los hay).
+    text = text.strip("_")
+    # Si después de todo el texto queda vacío (ej. title era "---"), devolver un default.
+    if not text:
+        return "untitled"
+    return text
+
+
+def ensure_dir_exists(dir_path: str):
+    """
+    Asegura que un directorio exista. Si no, lo crea.
+
+    Args:
+        dir_path: Ruta del directorio a verificar/crear.
+    """
+    if not os.path.exists(dir_path):
+        try:
+            os.makedirs(dir_path)
+            logger.info(f"Directorio creado: {dir_path}")
+        except OSError as e:
+            logger.error(f"Error al crear el directorio {dir_path}: {e}")
+            raise  # Relanzar la excepción para que el llamador la maneje si es crítico
+    else:
+        logger.debug(f"Directorio ya existe: {dir_path}")
+
+
+def save_transcription_to_file(
+    transcription_text: str, output_filename_no_ext: str, output_dir: str
+) -> str | None:
+    """
+    Guarda el texto de la transcripción en un archivo .txt.
+
+    Args:
+        transcription_text: El texto a guardar.
+        output_filename_no_ext: Nombre del archivo de salida (sin extensión).
+        output_dir: Directorio donde se guardará el archivo.
+
+    Returns:
+        La ruta completa al archivo guardado, o None si ocurre un error.
+    """
+    try:
+        ensure_dir_exists(output_dir)  # Asegurar que el directorio de salida exista
+
+        # Sanitizar el nombre del archivo como medida de seguridad adicional.
+        safe_filename = "".join(
+            c
+            if c.isalnum() or c in (".", "_")
+            else "_"  # Permitir puntos y guiones bajos
+            for c in output_filename_no_ext
+        ).strip(" .")  # Eliminar espacios y puntos al inicio/final también
+
+        if not safe_filename:  # Si la sanitización extrema lo deja vacío
+            safe_filename = f"default_transcription_{output_filename_no_ext[:10]}"  # Fallback más único
+
+        file_path = os.path.join(output_dir, f"{safe_filename}.txt")
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(transcription_text)
+        logger.info(f"Transcripción guardada en: {file_path}")
+        return file_path
+    except Exception as e:
+        logger.error(
+            f"Error al guardar la transcripción para '{output_filename_no_ext}' en '{output_dir}': {e}",
+            exc_info=True,
+        )
+        return None
+
+
+def cleanup_temp_files(file_paths_to_delete: list[str | None]):
+    """
+    Elimina una lista de archivos temporalmente.
+
+    Args:
+        file_paths_to_delete: Una lista de rutas de archivos a eliminar.
+                              Puede contener Nones, que serán ignorados.
+    """
+    cleaned_count = 0
+    valid_paths_to_check = [
+        p for p in file_paths_to_delete if p
+    ]  # Filtrar Nones primero
+
+    for file_path in valid_paths_to_check:
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                logger.info(f"Archivo temporal eliminado: {file_path}")
+                cleaned_count += 1
+            except OSError as e:
+                logger.error(f"Error al eliminar el archivo temporal {file_path}: {e}")
+        else:  # file_path no es None aquí debido al filtro previo
+            logger.warning(
+                f"Se intentó limpiar el archivo temporal {file_path}, pero no existe."
+            )
+    logger.info(
+        f"Limpieza de archivos temporales: {cleaned_count} archivo(s) eliminado(s) de {len(valid_paths_to_check)} solicitado(s) (existentes)."
+    )
+
+
+def cleanup_temp_files_sync(
+    file_paths_to_delete: list[str | None],
+):  # Permitir None también aquí
+    """
+    Elimina una lista de archivos de forma síncrona.
+    Usado para limpieza inmediata en caso de errores.
+    """
+    valid_paths_to_check = [p for p in file_paths_to_delete if p]
+    if not valid_paths_to_check:
+        logger.info("Limpieza síncrona: No hay archivos válidos para eliminar.")
+        return
+
+    logger.info(f"Limpieza síncrona iniciada para: {valid_paths_to_check}")
+    deleted_count = 0
+    for file_path in valid_paths_to_check:
+        # file_path ya está garantizado que no es None aquí
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                deleted_count += 1
+                logger.info(f"Archivo temporal (sync) eliminado: {file_path}")
+            else:
+                logger.warning(
+                    f"Archivo temporal (sync) no encontrado para eliminar: {file_path}"
+                )
+        except OSError as e_clean:
+            logger.error(
+                f"Error eliminando archivo temporal (sync) {file_path}: {e_clean}"
+            )
+        except Exception as e_unexpected:  # Captura más general por si acaso
+            logger.error(
+                f"Error inesperado eliminando archivo (sync) {file_path}: {e_unexpected}",
+                exc_info=True,
+            )
+    logger.info(
+        f"Limpieza síncrona completada: {deleted_count} archivo(s) eliminado(s) de {len(valid_paths_to_check)} solicitado(s) (existentes)."
+    )
+
+
+if __name__ == "__main__":
+    # Pruebas para las utilidades
+    test_output_dir = "../output_transcripts/"
+    test_temp_dir_utils = "../temp_files/"
+
+    logger.info("--- Iniciando pruebas de utils.py ---")
+
+    # Prueba ensure_dir_exists
+    logger.info(f"Probando ensure_dir_exists para: {test_output_dir}")
+    ensure_dir_exists(test_output_dir)
+    logger.info(f"Probando ensure_dir_exists para: {test_temp_dir_utils}")
+    ensure_dir_exists(test_temp_dir_utils)
+    ensure_dir_exists(
+        test_output_dir
+    )  # Probar de nuevo para asegurar que no falla si ya existe
+
+    # Prueba save_transcription_to_file
+    test_text = "Esta es una prueba de transcripción.\nCon múltiples líneas."
+    test_filename_valid = "mi_prueba_de_transcripción_normalizada"
+    test_filename_problematic = "   !!!problemático???   ...nombre "
+
+    logger.info(
+        f"Probando save_transcription_to_file con nombre normalizado: {test_filename_valid}"
+    )
+    saved_path_1 = save_transcription_to_file(
+        test_text, test_filename_valid, test_output_dir
+    )
+    if saved_path_1 and os.path.exists(saved_path_1):
+        logger.info(f"Archivo de prueba (1) guardado en: {saved_path_1}")
+    else:
+        logger.error("Falló la prueba de save_transcription_to_file (1).")
+
+    normalized_problematic = normalize_title_for_filename(test_filename_problematic)
+    logger.info(
+        f"Probando save_transcription_to_file con nombre problemático (normalizado a '{normalized_problematic}'): {test_filename_problematic}"
+    )
+    # La función save_transcription_to_file hará su propia sanitización interna a partir de output_filename_no_ext
+    saved_path_2 = save_transcription_to_file(
+        test_text, normalized_problematic, test_output_dir
+    )
+    if saved_path_2 and os.path.exists(saved_path_2):
+        logger.info(f"Archivo de prueba (2) guardado en: {saved_path_2}")
+    else:
+        logger.error("Falló la prueba de save_transcription_to_file (2).")
+
+    # Prueba cleanup_temp_files y cleanup_temp_files_sync
+    dummy_files_info = {
+        "dummy1.tmp": os.path.join(test_temp_dir_utils, "dummy_to_delete_1.tmp"),
+        "dummy2.tmp": os.path.join(test_temp_dir_utils, "dummy_to_delete_2.tmp"),
+        "dummy_sync1.tmp": os.path.join(test_temp_dir_utils, "dummy_sync_1.tmp"),
+        "dummy_sync2.tmp": os.path.join(test_temp_dir_utils, "dummy_sync_2.tmp"),
+    }
+    non_existent_file = os.path.join(test_temp_dir_utils, "no_existe.tmp")
+
+    for desc, path in dummy_files_info.items():
+        with open(path, "w") as f:
+            f.write(desc)
+
+    files_for_async_clean = [
+        dummy_files_info["dummy1.tmp"],
+        dummy_files_info["dummy2.tmp"],
+        non_existent_file,
+        None,
+    ]
+    logger.info(f"Probando cleanup_temp_files (async) con: {files_for_async_clean}")
+    cleanup_temp_files(files_for_async_clean)
+
+    if os.path.exists(dummy_files_info["dummy1.tmp"]) or os.path.exists(
+        dummy_files_info["dummy2.tmp"]
+    ):
+        logger.error("Falló cleanup_temp_files, archivos dummy aún existen.")
+    else:
+        logger.info("cleanup_temp_files parece exitosa (archivos dummy eliminados).")
+
+    files_for_sync_clean = [
+        dummy_files_info["dummy_sync1.tmp"],
+        dummy_files_info["dummy_sync2.tmp"],
+        non_existent_file,
+        None,
+    ]
+    logger.info(f"Probando cleanup_temp_files_sync con: {files_for_sync_clean}")
+    cleanup_temp_files_sync(files_for_sync_clean)
+
+    if os.path.exists(dummy_files_info["dummy_sync1.tmp"]) or os.path.exists(
+        dummy_files_info["dummy_sync2.tmp"]
+    ):
+        logger.error("Falló cleanup_temp_files_sync, archivos dummy_sync aún existen.")
+    else:
+        logger.info(
+            "cleanup_temp_files_sync parece exitosa (archivos dummy_sync eliminados)."
+        )
+
+    logger.info("--- Fin de pruebas de utils.py ---")
+</file>
+
+<file path="README.md">
+# YouTube Transcription Service API
+
+## 🚀 Descripción General
+
+Este proyecto proporciona una API FastAPI para descargar el audio de videos de YouTube, transcribirlo a texto utilizando el modelo Whisper de OpenAI y guardar la transcripción en un archivo `.txt`.
+
+La aplicación está diseñada para ser modular y robusta, con un manejo de errores detallado y una configuración flexible.
+
+## ✨ Características Principales
+
+*   **Descarga de Video y Extracción de Audio**: Utiliza `yt-dlp` para descargar eficientemente videos de YouTube y extraer la pista de audio.
+*   **Conversión a Formato Estándar**: El audio se convierte a formato WAV, 16kHz, mono, ideal para el procesamiento con Whisper.
+*   **Transcripción con Whisper**: Integra `openai-whisper` para una transcripción de audio a texto precisa.
+*   **API Asíncrona con FastAPI**: Ofrece un endpoint HTTP robusto y rápido construido con FastAPI.
+*   **Normalización de Nombres de Archivo**: Los títulos proporcionados para los archivos de salida se normalizan para asegurar nombres de archivo seguros y consistentes.
+*   **Manejo de Archivos Temporales**: Los archivos de video y audio intermedios se almacenan temporalmente y se limpian automáticamente (incluso en caso de error).
+*   **Configuración Sencilla**: Parámetros clave como el modelo Whisper y los directorios son configurables.
+*   **Logging Detallado**: Registros informativos en cada etapa del proceso para facilitar el seguimiento y la depuración.
+*   **Documentación Automática de API**: Gracias a FastAPI, la API ofrece documentación interactiva a través de Swagger UI (`/docs`) y ReDoc (`/redoc`).
+
+## 📋 Requisitos Previos
+
+Antes de ejecutar la aplicación, asegúrate de tener instalado lo siguiente:
+
+1.  **Python**: Versión 3.9 o superior.
+2.  **FFmpeg**: Es una dependencia crucial para `yt-dlp` (para la extracción y conversión de audio) y para `openai-whisper` (para cargar diversos formatos de audio). Debes tener `ffmpeg` instalado y accesible en el PATH de tu sistema.
+    *   **Windows**: Descarga desde [ffmpeg.org](https://ffmpeg.org/download.html) y añade la carpeta `bin` a tu variable de entorno PATH.
+    *   **macOS**: Puedes instalarlo usando Homebrew: `brew install ffmpeg`
+    *   **Linux**: Generalmente disponible a través del gestor de paquetes de tu distribución: `sudo apt update && sudo apt install ffmpeg` (para Debian/Ubuntu) o `sudo yum install ffmpeg` (para Fedora/CentOS).
+
+## ⚙️ Configuración del Proyecto
+
+1.  **Clonar el Repositorio (si aplica)**:
+    ```bash
+    # git clone <URL_DEL_REPOSITORIO>
+    # cd yt-transcription-categorization
+    ```
+
+2.  **Crear y Activar un Entorno Virtual (Recomendado)**:
+    ```bash
+    python -m venv venv
+    ```
+    *   Windows:
+        ```bash
+        .\venv\Scripts\activate
+        ```
+    *   macOS/Linux:
+        ```bash
+        source venv/bin/activate
+        ```
+
+3.  **Instalar Dependencias**:
+    Asegúrate de que tu entorno virtual esté activado y luego ejecuta:
+    ```bash
+    pip install -r requirements.txt
+    ```
+    Para el desarrollo y la ejecución de pruebas de módulos individuales que pueden tener dependencias adicionales (como las pruebas dentro de `yt_transcriber/transcriber.py`), también puedes instalar las dependencias de desarrollo:
+    ```bash
+    pip install -r requirements-dev.txt
+    ```
+
+4.  **Configuraciones (Opcional)**:
+    El archivo `yt_transcriber/config.py` contiene las siguientes configuraciones que puedes ajustar:
+    *   `WHISPER_MODEL_NAME`: Nombre del modelo Whisper a usar (e.g., "tiny", "base", "small", "medium", "large"). Por defecto es "base". Modelos más grandes son más precisos pero más lentos y consumen más recursos.
+    *   `WHISPER_DEVICE`: Dispositivo para ejecutar Whisper ("cpu" o "cuda"). Por defecto es "cpu". Si tienes una GPU NVIDIA compatible y CUDA configurado, puedes cambiarlo a "cuda" para una transcripción significativamente más rápida.
+    *   `TEMP_DOWNLOAD_DIR`: Directorio para archivos temporales (video y audio WAV). Por defecto es `"temp_files/"`.
+    *   `OUTPUT_TRANSCRIPTS_DIR`: Directorio donde se guardarán las transcripciones `.txt` finales. Por defecto es `"output_transcripts/"`.
+    La aplicación creará estos directorios si no existen.
+
+## ▶️ Ejecución de la Aplicación
+
+Con el entorno virtual activado y las dependencias instaladas, puedes iniciar el servidor FastAPI usando Uvicorn desde el directorio raíz del proyecto (`yt-transcription-categorization`):
+
+```bash
+uvicorn yt_transcriber.main:app --reload
+```
+
+*   `yt_transcriber.main:app`: Apunta al objeto `app` de FastAPI dentro de `yt_transcriber/main.py`.
+*   `--reload`: Permite que el servidor se reinicie automáticamente cuando detecta cambios en el código (útil para desarrollo).
+
+Una vez iniciado, la API estará disponible en: `http://127.0.0.1:8000`.
+
+## 🛠️ Uso de la API
+
+La API expone un único endpoint para solicitar transcripciones.
+
+### Endpoint: `POST /transcribe`
+
+Este endpoint procesa una URL de YouTube, descarga el audio, lo transcribe y guarda el resultado.
+
+*   **Método**: `POST`
+*   **URL**: `http://127.0.0.1:8000/transcribe`
+*   **Cuerpo de la Petición (Request Body)**:
+    *   **Formato**: `application/json`
+    *   **Campos**:
+        *   `youtube_url` (string, formato HttpUrl, requerido): La URL completa del video de YouTube a transcribir.
+        *   `title` (string, requerido): Un título sugerido para el archivo de transcripción. Este título será normalizado para crear un nombre de archivo seguro.
+    *   **Ejemplo de JSON**:
+        ```json
+        {
+            "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "title": "Mi Video Favorito de Rick"
+        }
+        ```
+
+*   **Respuesta Exitosa (Success Response)**:
+    *   **Código de Estado**: `200 OK`
+    *   **Formato**: `application/json`
+    *   **Campos**:
+        *   `message` (string): Mensaje de confirmación (ej. "Transcripción completada exitosamente.").
+        *   `filename` (string): Nombre del archivo `.txt` donde se guardó la transcripción (ej. `"Mi_Video_Favorito_de_Rick.txt"`).
+        *   `original_url` (string): La URL de YouTube que fue procesada.
+        *   `transcription_length` (integer): El número de caracteres en el texto transcrito.
+        *   `detected_language` (string, opcional): El idioma detectado por Whisper para el audio (ej. "en", "es"). Puede ser `null`.
+        *   `transcript_preview` (string, opcional): Una vista previa de los primeros 200 caracteres de la transcripción. Puede ser `null`.
+    *   **Ejemplo de JSON de Respuesta Exitosa**:
+        ```json
+        {
+            "message": "Transcripción completada exitosamente.",
+            "filename": "Mi_Video_Favorito_de_Rick.txt",
+            "original_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "transcription_length": 1856,
+            "detected_language": "en",
+            "transcript_preview": "We're no strangers to love..."
+        }
+        ```
+
+*   **Respuestas de Error Comunes**:
+    *   **`422 Unprocessable Entity`**: Ocurre si la petición JSON no es válida o falta algún campo requerido (e.g., `youtube_url` no es una URL válida, o `title` está ausente). El cuerpo de la respuesta detallará el error de validación.
+        ```json
+        {
+            "detail": [
+                {
+                    "loc": ["body", "youtube_url"],
+                    "msg": "invalid or missing URL scheme",
+                    "type": "value_error.url.scheme"
+                }
+            ]
+        }
+        ```
+    *   **`503 Service Unavailable`**: Indica un error durante la descarga o extracción de audio del video (controlado por `DownloadError`). Esto puede ocurrir si el video no está disponible, es privado, o `yt-dlp`/`ffmpeg` fallan.
+        ```json
+        {
+            "detail": "Error descargando video: yt-dlp falló: ERROR: [youtube] dQw4w9WgXcQ: Video unavailable. This video is private."
+        }
+        ```
+    *   **`500 Internal Server Error`**: Indica un error durante el proceso de transcripción del audio (controlado por `TranscriptionError`) o cualquier otro error inesperado en el servidor.
+        ```json
+        {
+            "detail": "Error transcribiendo audio: Error inesperado en Whisper: FFmpegsumething went wrong..."
+        }
+        ```
+
+### Documentación Interactiva de la API
+
+FastAPI genera automáticamente documentación interactiva para la API. Puedes acceder a ella a través de tu navegador una vez que el servidor esté en funcionamiento:
+
+*   **Swagger UI**: `http://127.0.0.1:8000/docs`
+*   **ReDoc**: `http://127.0.0.1:8000/redoc`
+
+Estas interfaces te permiten explorar el endpoint, ver los modelos de datos y probar la API directamente desde el navegador.
+
+## 📂 Estructura del Proyecto
+
+```
+yt-transcription-categorization/
+├── .cursor/
+│   ├── notes/
+│   │   ├── PLAN.md             # Plan de desarrollo inicial.
+│   │   └── analysis_notes.md   # Notas de análisis de documentos de referencia.
+│   └── yt_transcriber_test/
+│       └── TEST.md             # Casos de prueba detallados.
+├── temp_files/                 # Directorio temporal para videos y audios (creado dinámicamente).
+├── output_transcripts/         # Directorio para las transcripciones .txt (creado dinámicamente).
+├── yt_transcriber/             # Módulo principal de la aplicación.
+│   ├── __init__.py
+│   ├── main.py                 # Lógica del servidor FastAPI y endpoint.
+│   ├── downloader.py           # Descarga de video y extracción de audio.
+│   ├── transcriber.py          # Transcripción de audio con Whisper.
+│   ├── utils.py                # Funciones de utilidad (manejo de archivos, normalización).
+│   └── config.py               # Configuraciones de la aplicación.
+├── .gitignore
+├── .python-version             # Versión de Python (para pyenv).
+├── README.md                   # Este archivo.
+└── requirements.txt            # Dependencias del proyecto.
+```
+
+## 🌊 Flujo de Trabajo Simplificado
+
+1.  **Petición HTTP POST** llega a `/transcribe` con `youtube_url` y `title`.
+2.  **Validación Pydantic**: FastAPI valida los datos de entrada.
+3.  **Normalización de Título**: `main.py` usa `utils.normalize_title_for_filename()`.
+4.  **Descarga y Extracción**: `main.py` llama a `downloader.download_and_extract_audio()`.
+    *   `yt-dlp` descarga el video.
+    *   `ffmpeg` (vía `yt-dlp`) extrae el audio a WAV (16kHz, mono) en `temp_files/`.
+5.  **Transcripción**: `main.py` llama a `transcriber.transcribe_audio_file()`.
+    *   El modelo Whisper se carga (o se reutiliza desde caché).
+    *   El archivo WAV se transcribe a texto.
+6.  **Guardado de Transcripción**: `main.py` llama a `utils.save_transcription_to_file()`.
+    *   El texto se guarda en `output_transcripts/{normalized_title}.txt`.
+7.  **Respuesta HTTP**: Se envía una respuesta JSON `200 OK` con detalles.
+8.  **Limpieza (Background)**: `main.py` programa `utils.cleanup_temp_files()` con `BackgroundTasks` para eliminar los archivos de `temp_files/`.
+9.  **Manejo de Errores**: Si ocurre un error en cualquier etapa, se captura, se loguea, se realiza una limpieza síncrona de archivos temporales (si aplica) y se devuelve una respuesta HTTP de error apropiada (422, 500, 503).
+
+## ⚠️ Consideraciones Adicionales
+
+*   **Dependencia de FFmpeg**: La correcta instalación y accesibilidad de FFmpeg en el PATH del sistema es crucial.
+*   **Rendimiento de Whisper**: El modelo "base" es relativamente rápido en CPU. Para audios largos o si se usan modelos más grandes sin GPU, la transcripción puede tomar un tiempo considerable. Las operaciones de descarga y transcripción se ejecutan en un `threadpool` para no bloquear el servidor FastAPI, pero las peticiones se procesarán secuencialmente si el pool es limitado y las tareas son largas.
+*   **Concurrencia**: El sistema está diseñado para manejar múltiples peticiones. Los nombres de archivo de salida son únicos si los `title` de entrada lo son. La carga del modelo Whisper tiene una caché simple; en escenarios de muy alta concurrencia con modelos variables, podrían considerarse mecanismos de bloqueo más explícitos para la carga del modelo.
+
+## 🚀 Futuras Implementaciones (Posibles Mejoras)
+
+*   Permitir la selección del modelo Whisper y el idioma a través de la petición API.
+*   Soporte para otros formatos de salida (ej. JSON con timestamps, SRT, VTT).
+*   Integración con una base de datos para almacenar metadatos y transcripciones.
+*   Un frontend simple para interactuar con la API.
+*   Mejoras en la gestión de la caché del modelo Whisper para entornos de alta concurrencia.
+
+---
+
+Este `README.md` busca ser completo y profesional. ¡Espero que te sea de utilidad!
+</file>
+
+</files>

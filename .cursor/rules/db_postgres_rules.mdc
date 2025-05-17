@@ -1,7 +1,7 @@
 ---
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 - Use `psycopg2-binary` for connecting to and interacting with the PostgreSQL database.
 - Design and manage schemas for storing:

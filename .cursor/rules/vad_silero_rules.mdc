@@ -1,7 +1,7 @@
 ---
 description:
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 - **Voice Activity Detection (VAD)**: Employ Silero-VAD (`silero-vad`, potentially using ONNX models via `onnxruntime`) to identify speech segments.
 - Key Dependencies: `silero-vad`, `onnxruntime`
