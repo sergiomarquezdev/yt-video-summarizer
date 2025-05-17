@@ -1,7 +1,5 @@
 yt-dlp
 openai-whisper
 torch
-# fastapi # Eliminado
-# uvicorn[standard] # Eliminado
-python-dotenv # Para la gestión de configuración por entorno
-pydantic # Para validación de configuraciones y modelos de datos
+python-dotenv
+pydantic
