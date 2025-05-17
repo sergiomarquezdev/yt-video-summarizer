@@ -3,12 +3,14 @@
 import logging
 import os
 from datetime import datetime
+from typing import Optional
 
 import torch  # Necesario para la comprobación de CUDA y carga del modelo
 import whisper  # Necesario para cargar el modelo y type hints
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, status
 from fastapi import Request as FastAPIRequest
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import JSONResponse
 from pydantic import (
     BaseModel,  # BaseModel para modelos de datos
     HttpUrl,  # HttpUrl para validación de URL
@@ -22,8 +24,14 @@ from yt_transcriber.transcriber import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Determinar el nivel de log numérico desde la configuración
+# getattr se usa para obtener el atributo del módulo logging (ej. logging.INFO)
+# Si config.LOG_LEVEL no es un nombre válido, default a logging.INFO
+numeric_log_level = getattr(logging, config.LOG_LEVEL, logging.INFO)
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=numeric_log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),
@@ -36,6 +44,84 @@ app = FastAPI(
     description="API para descargar videos de YouTube, transcribirlos y guardar el texto.",
     version="0.1.0",
 )
+
+
+# --- Modelos Pydantic para Respuestas de Error Estructuradas ---
+class ApiErrorDetail(BaseModel):
+    status_code: int
+    error_type: str
+    message: str
+    detail: Optional[str] = None
+
+
+# --- Manejadores de Excepciones Globales ---
+@app.exception_handler(DownloadError)
+async def download_error_exception_handler(request: FastAPIRequest, exc: DownloadError):
+    logger.error(f"DownloadError capturada por handler: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=ApiErrorDetail(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            error_type=type(exc).__name__,
+            message="Error durante la descarga del video.",
+            detail=str(exc),
+        ).model_dump(),
+    )
+
+
+@app.exception_handler(TranscriptionError)
+async def transcription_error_exception_handler(
+    request: FastAPIRequest, exc: TranscriptionError
+):
+    logger.error(f"TranscriptionError capturada por handler: {exc}", exc_info=True)
+    # Limpiar archivos si la transcripción falla.
+    # Esta lógica es un poco difícil de manejar aquí sin acceso directo a video_path_temp, audio_path_temp
+    # Considerar si la limpieza debe ser responsabilidad del endpoint o si se puede pasar info al error.
+    # Por ahora, mantenemos la limpieza dentro del endpoint y este handler solo reporta.
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=ApiErrorDetail(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            error_type=type(exc).__name__,
+            message="Error durante la transcripción del audio.",
+            detail=str(exc),
+        ).model_dump(),
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: FastAPIRequest, exc: HTTPException):
+    logger.info(
+        f"HTTPException capturada (formateando con ApiErrorDetail): {exc.status_code} - {exc.detail}"
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ApiErrorDetail(
+            status_code=exc.status_code,
+            error_type=type(
+                exc
+            ).__name__,  # Usar el nombre de la clase de la excepción específica si es posible
+            message="Ocurrió una excepción HTTP.",  # Mensaje genérico
+            detail=exc.detail,  # Detalle específico de la excepción HTTP
+        ).model_dump(),
+        headers=exc.headers,  # Conservar las cabeceras originales de la HTTPException
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: FastAPIRequest, exc: Exception):
+    logger.critical(
+        f"Excepción genérica no controlada capturada por handler: {exc}", exc_info=True
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=ApiErrorDetail(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            error_type=type(exc).__name__,
+            message="Ocurrió un error interno inesperado en el servidor.",
+            detail="Por favor, contacte al administrador si el problema persiste.",  # No exponer str(exc) directamente por seguridad
+        ).model_dump(),
+    )
 
 
 # --- Evento de Inicio de la Aplicación para Cargar el Modelo Whisper ---
@@ -73,6 +159,10 @@ async def load_whisper_model_on_startup():
 class TranscriptionRequest(BaseModel):
     youtube_url: HttpUrl  # Validada por Pydantic como URL HTTP/HTTPS
     title: str
+    language: Optional[str] = (
+        None  # Opcional: código de idioma para Whisper (ej. "en", "es")
+    )
+    include_timestamps: bool = False  # Opcional: incluir timestamps en la salida (actualmente solo afecta opciones de decodificación)
 
 
 class TranscriptionResponse(BaseModel):
@@ -86,24 +176,26 @@ class TranscriptionResponse(BaseModel):
     )
 
 
-class ErrorResponse(BaseModel):
-    detail: str
-
-
 # --- Lógica del Endpoint ---
 @app.post(
     "/transcribe",
     response_model=TranscriptionResponse,
     responses={
-        400: {"model": ErrorResponse, "description": "Entrada inválida"},
-        422: {
-            "model": ErrorResponse,
-            "description": "Error de validación Pydantic (URL/título)",
+        status.HTTP_400_BAD_REQUEST: {
+            "model": ApiErrorDetail,
+            "description": "Entrada inválida (ej. JSON malformado)",
         },
-        500: {"model": ErrorResponse, "description": "Error interno del servidor"},
-        503: {
-            "model": ErrorResponse,
-            "description": "Error en descarga/procesamiento del video",
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "model": ApiErrorDetail,
+            "description": "Error de validación Pydantic (ej. URL inválida, falta título)",
+        },  # FastAPI usa su propio formato para 422 por defecto
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": ApiErrorDetail,
+            "description": "Error interno del servidor",
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": ApiErrorDetail,
+            "description": "Error en descarga o procesamiento del video",
         },
     },
 )
@@ -131,7 +223,7 @@ async def transcribe_video_endpoint(
     ):
         logger.error("Modelo Whisper no cargado. No se puede procesar la petición.")
         raise HTTPException(
-            status_code=503,  # Service Unavailable
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Error interno: Modelo de transcripción no disponible.",
         )
 
@@ -189,21 +281,13 @@ async def transcribe_video_endpoint(
         # video_path_temp (si es None) se maneja en la limpieza; su ausencia no debe
         # detener la transcripción si el audio está presente.
         if not audio_path_temp:
-            logger.error(
-                f"Fallo crítico: No se obtuvo ruta al archivo de audio (audio_path_temp es None o vacío)."
-            )
-            # Si audio_path_temp es None, video_path_temp podría existir si solo falló la extracción de audio.
-            if video_path_temp and os.path.exists(
-                video_path_temp
-            ):  # Limpiar video si existe
+            logger.error("Fallo crítico: No se obtuvo ruta al archivo de audio.")
+            if video_path_temp and os.path.exists(video_path_temp):
                 logger.info(
                     f"Programando limpieza de video {video_path_temp} por fallo de audio."
                 )
                 background_tasks.add_task(utils.cleanup_temp_files, [video_path_temp])
-            raise HTTPException(
-                status_code=503,
-                detail="Error procesando video: No se pudo obtener el archivo de audio.",
-            )
+            raise DownloadError("No se pudo obtener el archivo de audio procesado.")
 
         logger.info(
             f"Audio para transcribir: {audio_path_temp}, Video temp: {video_path_temp}"
@@ -217,6 +301,8 @@ async def transcribe_video_endpoint(
             transcriber.transcribe_audio_file,
             audio_path_temp,
             whisper_model_instance,  # Pasar la instancia del modelo cargado
+            transcription_request.language,  # Pasar el idioma solicitado
+            transcription_request.include_timestamps,  # Pasar la opción de timestamps
         )
 
         if (
@@ -227,9 +313,8 @@ async def transcribe_video_endpoint(
             logger.error(
                 "Fallo en la transcripción del audio o texto vacío. No se puede continuar."
             )
-            raise HTTPException(
-                status_code=500,
-                detail="Error interno: La transcripción del audio falló o no produjo texto.",
+            raise TranscriptionError(
+                "La transcripción del audio falló o no produjo texto."
             )
 
         logger.info(
@@ -255,7 +340,31 @@ async def transcribe_video_endpoint(
             transcription_result.text,  # Usar el texto del objeto resultado
             output_filename_base,  # Usar el nombre base construido
             config.OUTPUT_TRANSCRIPTS_DIR,
+            transcription_request.title,  # Pasar el título original de la petición
         )
+
+        if output_file_path is None:
+            logger.error(
+                f"CRÍTICO: Fallo al guardar el archivo de transcripción para '{output_filename_base}' en '{config.OUTPUT_TRANSCRIPTS_DIR}'"
+            )
+            # Limpieza síncrona ya que el guardado final falló.
+            files_to_clean_on_save_failure = []
+            if video_path_temp:
+                files_to_clean_on_save_failure.append(video_path_temp)
+            if audio_path_temp:
+                files_to_clean_on_save_failure.append(audio_path_temp)
+
+            if files_to_clean_on_save_failure:
+                logger.info(
+                    f"Ejecutando limpieza síncrona debido a fallo al guardar transcripción para: {files_to_clean_on_save_failure}"
+                )
+                utils.cleanup_temp_files_sync(files_to_clean_on_save_failure)
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error interno del servidor: No se pudo guardar el archivo de transcripción.",
+            )
+
         logger.info(f"Transcripción guardada en: {output_file_path}")
 
         # 5. Programar limpieza de archivos temporales
@@ -297,7 +406,7 @@ async def transcribe_video_endpoint(
             f"Fallo en descarga para {transcription_request.youtube_url}: {e}",
             exc_info=True,
         )
-        raise HTTPException(status_code=503, detail=f"Error descargando video: {e}")
+        raise e
     except TranscriptionError as e:
         logger.error(
             f"Fallo en transcripción para {transcription_request.youtube_url}: {e}",
@@ -314,7 +423,7 @@ async def transcribe_video_endpoint(
                 f"Limpiando archivos temporales después de error de transcripción: {files_to_clean_on_transcription_error}"
             )
             utils.cleanup_temp_files_sync(files_to_clean_on_transcription_error)
-        raise HTTPException(status_code=500, detail=f"Error transcribiendo audio: {e}")
+        raise e
     except Exception as e:
         logger.critical(
             f"Error inesperado procesando {transcription_request.youtube_url}: {e}",
@@ -328,7 +437,7 @@ async def transcribe_video_endpoint(
             if f is not None and os.path.exists(f)
         ):  # Solo limpiar si hay algo que limpiar
             utils.cleanup_temp_files_sync(files_to_clean_on_general_error)
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {e}")
+        raise e
 
 
 # --- Ejemplo de cómo ejecutar con Uvicorn (para desarrollo) ---

@@ -90,3 +90,28 @@ Desarrollar una aplicación Python que actúe como un servicio (endpoint HTTP co
   - [x] **Tarea 8.1**: Realizar una revisión detallada y limpieza de comentarios, código innecesario y logs en todos los módulos principales (`config.py`, `downloader.py`, `transcriber.py`, `utils.py`, `main.py`).
     - [x] Primera pasada de limpieza y refactorización.
     - [x] Segunda pasada de revisión y pulido final.
+
+- [ ] **Fase 9: Refinamiento Post-Testing y Mejoras Arquitectónicas**
+    - [x] **Tarea 9.1 (CRÍTICO - TC_018):** Mejorar el manejo de errores en `main.py` cuando `utils.save_transcription_to_file` falla.
+        - [x] Verificar si `output_file_path` es `None`.
+        - [x] Si es `None`, registrar error crítico.
+        - [x] Si es `None`, ejecutar limpieza síncrona de archivos temporales (`video_path_temp`, `audio_path_temp`).
+        - [x] Si es `None`, lanzar `HTTPException 500`.
+    - [ ] **Tarea 9.2 (ARQUITECTURA - TC_016):** Diseñar e implementar una arquitectura de procesamiento asíncrono para videos de larga duración.
+        - [ ] Investigar e implementar un sistema de cola de tareas. IMPORTANTE, debe ser algo gratuito o con muy poco coste. (ej. Celery con RabbitMQ/Redis).
+        - [ ] Refactorizar `main.py` para que el endpoint `/transcribe` encole tareas y responda con `202 Accepted` + `task_id`.
+        - [ ] Crear workers asíncronos (ej. Celery workers) que ejecuten el pipeline de transcripción.
+        - [ ] Implementar almacenamiento de estado/resultados de tareas.
+        - [ ] Crear un nuevo endpoint en `main.py` para consultar estado/resultado de tareas (`/transcribe/status/{task_id}`).
+        - [ ] Mover la carga del modelo Whisper a los workers o adoptar una estrategia mixta.
+    - [ ] **Tarea 9.3: Mejoras en `yt_transcriber/config.py`**
+        - [x] (Opcional) Considerar validación de variables de configuración al inicio (ej. con Pydantic).
+        - [x] Asegurar tipado claro para todas las configuraciones si se vuelven más complejas.
+        - [ ] Añadir configuraciones para el broker de Celery si se implementa la Tarea 9.2.
+    - [x] **Tarea 9.4: Mejoras en `yt_transcriber/downloader.py`**
+        - [x] Revisar periódicamente las opciones de `yt-dlp` para optimizaciones (revisado, sin cambios urgentes).
+        - [x] Asegurar que el nivel de logging de la aplicación permita ver logs detallados de `yt-dlp` para depuración (implementado nivel de log configurable).
+    - [x] **Tarea 9.5: Mejoras en `yt_transcriber/transcriber.py`**
+        - [x] Considerar hacer parametrizables las `DecodingOptions` de Whisper (idioma, timestamps) si se requiere flexibilidad futura. (Implementado para `language` y `include_timestamps`)
+    - [x] **Tarea 9.7: Mejoras en `yt_transcriber/main.py` (adicionales a Tarea 9.2)**
+        - [x] (Opcional) Considerar estandarizar un formato de respuesta de error más rico para `500/503` si la API crece. (Implementado con ApiErrorDetail y handlers globales)
