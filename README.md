@@ -1,119 +1,75 @@
 # Transcriptor de YouTube a Texto (CLI)
 
-Esta aplicación es una herramienta de línea de comandos (CLI) que descarga videos de YouTube, extrae el audio y lo transcribe a texto plano utilizando el modelo Whisper de OpenAI.
+Herramienta simple para descargar videos de YouTube y transcribirlos a texto usando Whisper.
 
-## Características
+## 1. Requisitos Previos
 
-*   Descarga de video y extracción de audio desde URLs de YouTube (`yt-dlp`).
-*   Transcripción de audio a texto (`openai-whisper`).
-*   Nombres de archivo de salida personalizables basados en el título proporcionado.
-*   Limpieza automática de archivos temporales.
-*   Configurable a través de variables de entorno (ver `yt_transcriber/config.py` y `.env.example`).
-*   Opción para especificar idioma de transcripción y si se incluyen timestamps (pasados a Whisper).
+*   **Python 3.9 o superior.**
+*   **ffmpeg**: Necesario para procesar el audio. Asegúrate de que esté instalado y en el PATH de tu sistema.
+    *   Puedes descargarlo desde [ffmpeg.org](https://ffmpeg.org/download.html).
 
-## Requisitos Previos
+## 2. Instalación Rápida
 
-*   Python 3.9 o superior.
-*   `ffmpeg` instalado y accesible en el PATH del sistema. `yt-dlp` lo requiere para la extracción y conversión de audio. Puedes descargarlo desde [ffmpeg.org](https://ffmpeg.org/download.html).
-
-## Configuración
-
-1.  **Clona el repositorio (si aplica):**
+1.  Clonar el repositorio:
     ```bash
-    git clone <tu-repositorio-url>
+    # git clone <URL_DEL_REPOSITORIO>
     cd yt-transcription-categorization
     ```
-
-2.  **Crea un entorno virtual (recomendado):**
+2.  Crea un entorno virtual (recomendado):
     ```bash
     python -m venv venv
-    # En Windows
-    venv\Scripts\activate
-    # En macOS/Linux
-    source venv/bin/activate
     ```
-
-3.  **Instala las dependencias:**
+3.  Activa el entorno:
+    *   En Windows:
+        ```bash
+        venv\Scripts\activate
+        ```
+    *   En macOS/Linux:
+        ```bash
+        source venv/bin/activate
+        ```
+4.  Instala las dependencias:
     ```bash
     pip install -r requirements.txt
     ```
-    Si tienes `requirements-dev.txt` y quieres instalar dependencias de desarrollo (como `numpy`, `soundfile` para pruebas directas de módulos antiguos):
-    ```bash
-    pip install -r requirements-dev.txt
-    ```
 
-4.  **Configuración del Entorno (Opcional):**
-    Puedes configurar la aplicación creando un archivo `.env` en la raíz del proyecto. Copia el archivo `.env.example` a `.env` y ajusta las variables según sea necesario:
-    ```bash
-    cp .env.example .env
-    ```
-    Variables configurables:
-    *   `WHISPER_MODEL_NAME`: Modelo de Whisper a usar (ej. "tiny", "base", "small", "medium", "large"). Por defecto: "base".
-    *   `WHISPER_DEVICE`: Dispositivo para correr Whisper (ej. "cpu", "cuda"). Por defecto: "cpu".
-    *   `TEMP_DOWNLOAD_DIR`: Directorio para archivos temporales. Por defecto: "temp_files/".
-    *   `OUTPUT_TRANSCRIPTS_DIR`: Directorio para las transcripciones finales. Por defecto: "output_transcripts/".
-    *   `LOG_LEVEL`: Nivel de logging (ej. "INFO", "DEBUG"). Por defecto: "INFO".
+## 3. Cómo Usarlo
 
-## Uso
-
-Ejecuta el script `cli.py` desde el directorio raíz del proyecto, proporcionando la URL del video de YouTube y un título para el archivo de salida.
+Para transcribir un video, ejecuta el siguiente comando desde la carpeta del proyecto (`yt-transcription-categorization`):
 
 ```bash
-python yt_transcriber/cli.py --url "URL_DEL_VIDEO_DE_YOUTUBE" --title "Titulo Para El Archivo"
+python yt_transcriber/cli.py --url "LA_URL_DE_YOUTUBE" --title "EL_TITULO_PARA_TU_ARCHIVO"
 ```
 
-**Argumentos:**
+*   `--url`: Es la dirección web completa del video de YouTube.
+*   `--title`: Es el nombre que quieres darle al archivo de texto que se creará.
 
-*   `-u URL, --url URL` (Obligatorio): La URL completa del video de YouTube.
-    *   Ejemplo: `"https://www.youtube.com/watch?v=dQw4w9WgXcQ"`
-*   `-t TITULO, --title TITULO` (Obligatorio): El título base que se usará para nombrar el archivo de transcripción `.txt` resultante. Se normalizará para eliminar caracteres no válidos para nombres de archivo.
-    *   Ejemplo: `"Mi Video Favorito Transcrito"`
-*   `-l IDIOMA, --language IDIOMA` (Opcional): Código de idioma de dos letras (ej. "en", "es", "fr") para forzar la transcripción en ese idioma. Si no se especifica, Whisper intentará detectar el idioma automáticamente.
-    *   Ejemplo: `--language es`
-*   `--include_timestamps` (Opcional): Si se incluye este flag, se pasarán las opciones a Whisper para que intente generar timestamps. (La salida en el archivo .txt seguirá siendo texto plano por ahora).
-
-**Ejemplo Completo:**
+**Ejemplo:**
 
 ```bash
-python yt_transcriber/cli.py --url "https://www.youtube.com/watch?v=Y-Jy_ClFIos" --title "Test Video Español" --language es
+python yt_transcriber/cli.py --url "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --title "MiCancionFavorita"
 ```
 
-Esto procesará el video, y si tiene éxito, imprimirá en la consola la ruta al archivo `.txt` guardado en el directorio `output_transcripts/` (o el configurado). El nombre del archivo incluirá el título normalizado, el ID del video y un ID de trabajo único.
-
-**Salida en caso de éxito:**
+Cuando termine, verás un mensaje como este en la consola, indicando dónde se guardó tu transcripción:
 
 ```
-Transcripción guardada en: output_transcripts/Test_Video_Espanol_vid_Y-Jy_ClFIos_job_20231027123456789012.txt
+Transcripción guardada en: output_transcripts/MiCancionFavorita_vid_dQw4w9WgXcQ_job_20231027123456789012.txt
 ```
+El archivo `.txt` estará en la carpeta `output_transcripts`.
 
-En caso de error, se mostrarán mensajes en la consola.
+## 4. Opciones Adicionales (Opcional)
 
-## Estructura del Proyecto
+*   **Especificar Idioma**: Si Whisper no detecta bien el idioma, puedes ayudarlo:
+    ```bash
+    python yt_transcriber/cli.py --url "URL" --title "TITULO" --language es
+    ```
+    (Usa `es` para español, `en` para inglés, `fr` para francés, etc.)
 
-```
-yt-transcription-categorization/
-├── yt_transcriber/ # Código fuente de la aplicación
-│   ├── __init__.py
-│   ├── cli.py              # Punto de entrada para la interfaz de línea de comandos
-│   ├── config.py           # Gestión de configuración (lee .env)
-│   ├── downloader.py       # Lógica para descargar videos y extraer audio
-│   ├── transcriber.py      # Lógica para la transcripción de audio con Whisper
-│   └── utils.py            # Funciones de utilidad (normalización, limpieza, etc.)
-├── .env.example            # Ejemplo de archivo de configuración de entorno
-├── .gitignore
-├── .python-version         # (Si usas pyenv)
-├── README.md               # Este archivo
-├── requirements-dev.txt    # Dependencias para desarrollo/pruebas
-└── requirements.txt        # Dependencias principales
-```
+*   **Incluir Timestamps**: Si quieres que Whisper intente generar timestamps (marcas de tiempo):
+    ```bash
+    python yt_transcriber/cli.py --url "URL" --title "TITULO" --include_timestamps
+    ```
 
-## Posibles Mejoras Futuras
+## Configuración Avanzada (Opcional)
 
-*   Opción para especificar el formato de salida de la transcripción (ej. JSON con timestamps, SRT, VTT).
-*   Añadir la opción `--retain-video-file` al CLI para conservar el archivo de video descargado.
-*   Integración con una base de datos para almacenar metadatos y transcripciones.
-*   Mejoras en el empaquetado para una distribución más fácil (ej. usando `setuptools` y creando un paquete instalable).
-
----
-
-Este `README.md` busca ser completo y profesional. ¡Espero que te sea de utilidad!
+La aplicación usa configuraciones por defecto para el modelo de Whisper, carpetas temporales, etc. Si necesitas cambiarlas, puedes hacerlo editando el archivo `.env` (crea uno a partir de `.env.example`) o directamente en `yt_transcriber/config.py`.
