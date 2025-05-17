@@ -24,7 +24,6 @@ def transcribe_audio_file(
     audio_path: str,
     model: whisper.Whisper,  # Acepta el modelo cargado
     language: Optional[str] = None,
-    include_timestamps: bool = False,
 ) -> TranscriptionResult:
     """
     Transcribe un archivo de audio utilizando el modelo Whisper proporcionado.
@@ -34,7 +33,6 @@ def transcribe_audio_file(
         model: Instancia del modelo Whisper cargado.
         language: Código de idioma opcional para forzar la transcripción (ej. "en", "es").
                   Si es None, Whisper auto-detectará el idioma.
-        include_timestamps: Si es True, se pedirán timestamps a Whisper.
 
     Returns:
         Un objeto TranscriptionResult con el texto y el idioma detectado.
@@ -53,20 +51,14 @@ def transcribe_audio_file(
         raise TranscriptionError(f"Archivo de audio no encontrado: {audio_path}")
 
     try:
-        logger.info(
-            f"Transcribiendo archivo: {audio_path} con idioma='{language}', include_timestamps={include_timestamps}"
-        )
+        logger.info(f"Transcribiendo archivo: {audio_path} con idioma='{language}'")
 
         transcribe_options = {}
         if language:
             transcribe_options["language"] = language
 
-        transcribe_options["without_timestamps"] = not include_timestamps
-
-        # Nota: La opción fp16 puede considerarse para GPUs compatibles.
-        # Ejemplo:
-        # if model.device.type == "cuda":
-        #     transcribe_options["fp16"] = True
+        if model.device.type == "cuda":
+            transcribe_options["fp16"] = True
 
         result = model.transcribe(audio_path, **transcribe_options)
 
