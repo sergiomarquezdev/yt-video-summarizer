@@ -1,7 +1,7 @@
 yt-dlp
 openai-whisper
 torch
-fastapi
-uvicorn[standard] # [standard] incluye dependencia para websockets y otros, útil
+# fastapi # Eliminado
+# uvicorn[standard] # Eliminado
 python-dotenv # Para la gestión de configuración por entorno
 pydantic # Para validación de configuraciones y modelos de datos
