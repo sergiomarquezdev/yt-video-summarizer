@@ -70,7 +70,6 @@ def process_transcription(
     youtube_url: str,
     title: str,
     language: str | None = None,
-    include_timestamps: bool = False,
 ):
     """
     Lógica principal para descargar, transcribir y guardar la transcripción.
@@ -144,7 +143,6 @@ def process_transcription(
             audio_path=audio_path_temp,
             model=_whisper_model_instance,  # Usar el modelo globalmente cargado
             language=language,  # Pasar el código de idioma
-            include_timestamps=include_timestamps,
         )
 
         if not trans_result or not trans_result.text:
@@ -162,17 +160,16 @@ def process_transcription(
 
         logger.info(f"Guardando transcripción como: {output_filename_base}.txt")
         output_file_path = utils.save_transcription_to_file(
-            transcription_text=trans_result.text,  # Corregido
-            output_filename_no_ext=output_filename_base,  # Corregido
+            transcription_text=trans_result.text,
+            output_filename_no_ext=output_filename_base,
             output_dir=config.OUTPUT_TRANSCRIPTS_DIR,
-            original_title=title,  # Podríamos pasar el título original aquí
+            original_title=title,
         )
 
         if output_file_path is None:
             logger.critical(
                 f"CRÍTICO: Fallo al guardar el archivo de transcripción para '{output_filename_base}' en '{config.OUTPUT_TRANSCRIPTS_DIR}'"
             )
-            # La limpieza síncrona se hará en el bloque finally
             raise IOError("No se pudo guardar el archivo de transcripción.")
 
         logger.info(f"Transcripción guardada exitosamente en: {output_file_path}")
@@ -182,7 +179,6 @@ def process_transcription(
         return output_file_path
 
     except DownloadError as e:
-        # Accedemos al mensaje de error a través de str(e) o e.args[0]
         error_message = str(e)
         logger.error(f"Error de descarga: {error_message}", exc_info=True)
         print(f"Error: No se pudo descargar el video. {error_message}", file=sys.stderr)
@@ -211,7 +207,6 @@ def process_transcription(
             files_to_clean.append(video_path_temp)
 
         if audio_path_temp and os.path.exists(audio_path_temp):
-            # El audio WAV siempre es temporal, no hay config para retenerlo explícitamente
             files_to_clean.append(audio_path_temp)
 
         if files_to_clean:
@@ -248,11 +243,6 @@ def main():
         default=None,
         help="Código de idioma opcional para la transcripción (ej. 'en', 'es'). Si no se provee, Whisper intentará detectarlo.",
     )
-    parser.add_argument(
-        "--include_timestamps",
-        action="store_true",  # Si se incluye el flag, el valor es True
-        help="Incluir timestamps en la salida de la transcripción (actualmente no cambia el formato .txt pero se pasa a Whisper).",
-    )
 
     args = parser.parse_args()
 
@@ -275,7 +265,6 @@ def main():
         youtube_url=args.url,
         title=args.title,
         language=args.language,
-        include_timestamps=args.include_timestamps,
     )
 
     if result_path:

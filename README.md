@@ -65,11 +65,6 @@ El archivo `.txt` estará en la carpeta `output_transcripts`.
     ```
     (Usa `es` para español, `en` para inglés, `fr` para francés, etc.)
 
-*   **Incluir Timestamps**: Si quieres que Whisper intente generar timestamps (marcas de tiempo):
-    ```bash
-    python yt_transcriber/cli.py --url "URL" --title "TITULO" --include_timestamps
-    ```
-
 ## Configuración Avanzada (Opcional)
 
 La aplicación usa configuraciones por defecto para el modelo de Whisper, carpetas temporales, etc. Si necesitas cambiarlas, puedes hacerlo editando el archivo `.env` (crea uno a partir de `.env.example`) o directamente en `yt_transcriber/config.py`.
