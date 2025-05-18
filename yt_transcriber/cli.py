@@ -2,6 +2,8 @@ import argparse
 import logging
 import os
 import sys
+import threading
+import time
 from datetime import datetime
 
 from yt_transcriber import config, downloader, transcriber, utils
@@ -66,6 +68,21 @@ def load_whisper_model_globally():
         sys.exit(1)  # Salir si el modelo no se puede cargar
 
 
+def log_heartbeat(interval_seconds: int, stop_event: threading.Event):
+    """
+    Función para loguear un mensaje periódico mientras no se activa el evento de parada.
+    """
+    logger.info("Iniciando heartbeat de transcripción...")
+    start_time = time.time()
+    while not stop_event.is_set():
+        elapsed_time = time.time() - start_time
+        logger.info(
+            f"Transcripción en curso... ({elapsed_time:.0f} segundos transcurridos)"
+        )
+        stop_event.wait(interval_seconds)
+    logger.info("Heartbeat de transcripción detenido.")
+
+
 def process_transcription(
     youtube_url: str,
     title: str,
@@ -95,6 +112,16 @@ def process_transcription(
     unique_job_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
     job_temp_dir = os.path.join(config.TEMP_DOWNLOAD_DIR, unique_job_id)
     utils.ensure_dir_exists(job_temp_dir)
+
+    # Crear un evento para detener el hilo del heartbeat
+    heartbeat_stop_event = threading.Event()
+    # Crear e iniciar el hilo del heartbeat (cada 60 segundos)
+    heartbeat_thread = threading.Thread(
+        target=log_heartbeat,
+        args=(60, heartbeat_stop_event),
+        daemon=True,  # El hilo se cerrará automáticamente si el programa principal termina
+    )
+    heartbeat_thread.start()
 
     try:
         # Paso 1: Asegurar que los directorios de trabajo existen
@@ -155,6 +182,11 @@ def process_transcription(
             f"Transcripción completada. Idioma detectado: {trans_result.language}. Longitud: {len(trans_result.text)} caracteres."
         )
 
+        # Detener el hilo del heartbeat antes de finalizar
+        heartbeat_stop_event.set()
+        # Opcional: esperar a que el hilo termine (bueno para asegurar logs)
+        # heartbeat_thread.join()
+
         # Paso 4: Guardar la transcripción en un archivo
         output_filename_base = (
             f"{user_provided_title}_vid_{downloaded_video_id}_job_{unique_job_id}"
@@ -184,6 +216,9 @@ def process_transcription(
         error_message = str(e)
         logger.error(f"Error de descarga: {error_message}", exc_info=True)
         print(f"Error: No se pudo descargar el video. {error_message}", file=sys.stderr)
+        # Asegurarse de detener el heartbeat en caso de error
+        heartbeat_stop_event.set()
+        # heartbeat_thread.join()
         return None
     except TranscriptionError as e:
         error_message = str(e)
@@ -191,25 +226,52 @@ def process_transcription(
         print(
             f"Error: No se pudo transcribir el audio. {error_message}", file=sys.stderr
         )
+        # Asegurarse de detener el heartbeat en caso de error
+        heartbeat_stop_event.set()
+        # heartbeat_thread.join()
         return None
     except IOError as e:  # Específicamente para el fallo de guardado
         logger.critical(f"Error de E/S (ej. al guardar archivo): {e}", exc_info=True)
         print(f"Error: No se pudo guardar el archivo. {e}", file=sys.stderr)
+        # Asegurarse de detener el heartbeat en caso de error
+        heartbeat_stop_event.set()
+        # heartbeat_thread.join()
         return None
     except Exception as e:
         logger.critical(
             f"Ocurrió un error inesperado durante el proceso: {e}", exc_info=True
         )
         print(f"Error inesperado: {e}", file=sys.stderr)
+        # Asegurarse de detener el heartbeat en caso de error
+        heartbeat_stop_event.set()
+        # heartbeat_thread.join()
         return None
     finally:
         # Limpieza de la subcarpeta temporal del job
         utils.cleanup_temp_dir(job_temp_dir)
 
 
+def get_youtube_title(youtube_url: str) -> str:
+    """
+    Extrae el título de un video de YouTube usando yt-dlp sin descargar el video.
+    """
+    try:
+        import yt_dlp
+
+        with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+            info = ydl.extract_info(youtube_url, download=False)
+            if isinstance(info, dict):
+                return info.get("title", "untitled")
+            else:
+                return "untitled"
+    except Exception as e:
+        logger.error(f"No se pudo extraer el título automáticamente: {e}")
+        return "untitled"
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Transcribe un video de YouTube a texto."
+        description="Transcribe un video de YouTube a texto. Solo requiere la URL."
     )
     parser.add_argument(
         "-u",
@@ -218,21 +280,6 @@ def main():
         type=str,
         help="URL completa del video de YouTube (ej. https://www.youtube.com/watch?v=XXXXXXXXXXX)",
     )
-    parser.add_argument(
-        "-t",
-        "--title",
-        required=True,
-        type=str,
-        help="Título base para el archivo de transcripción resultante.",
-    )
-    parser.add_argument(
-        "-l",
-        "--language",
-        type=str,
-        default=None,
-        help="Código de idioma opcional para la transcripción (ej. 'en', 'es'). Si no se provee, Whisper intentará detectarlo.",
-    )
-
     args = parser.parse_args()
 
     # Validar la URL de YouTube (simple check, yt-dlp hará la validación exhaustiva)
@@ -246,14 +293,18 @@ def main():
         )
         sys.exit(1)
 
+    # Extraer el título automáticamente
+    logger.info("Extrayendo título automáticamente de YouTube...")
+    title = get_youtube_title(args.url)
+    logger.info(f"Título extraído: {title}")
+
     # Cargar el modelo Whisper antes de procesar, para que esté disponible
-    # y para fallar rápido si no se puede cargar.
     load_whisper_model_globally()
 
     result_path = process_transcription(
         youtube_url=args.url,
-        title=args.title,
-        language=args.language,
+        title=title,
+        language=None,  # No se pasa idioma, Whisper lo detecta automáticamente
     )
 
     if result_path:

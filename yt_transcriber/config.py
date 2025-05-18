@@ -14,8 +14,8 @@ load_dotenv()
 
 class AppSettings(BaseModel):
     # Definir defaults aquí. Los validadores los pueden sobreescribir desde el entorno.
-    WHISPER_MODEL_NAME: Literal["tiny", "base", "small", "medium", "large"] = "medium"
-    WHISPER_DEVICE: Literal["cpu", "cuda"] = "cuda"
+    WHISPER_MODEL_NAME: Literal["tiny", "base", "small", "medium", "large"] = "base"
+    WHISPER_DEVICE: Literal["cpu", "cuda"] = "cpu"
     TEMP_DOWNLOAD_DIR: str = "temp_files/"
     OUTPUT_TRANSCRIPTS_DIR: str = "output_transcripts/"
     LOG_LEVEL: str = "INFO"
