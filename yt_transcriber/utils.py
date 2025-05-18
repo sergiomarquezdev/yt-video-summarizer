@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import shutil
 
 logger = logging.getLogger(__name__)
 
@@ -117,37 +118,19 @@ def cleanup_temp_files(file_paths_to_delete: list[str | None]):
     )
 
 
-def cleanup_temp_files_sync(file_paths_to_delete: list[str | None]):
+def cleanup_temp_dir(temp_dir_path: str):
     """
-    Elimina una lista de archivos de forma síncrona.
-    Usado para limpieza inmediata en caso de errores.
+    Elimina completamente el directorio temporal y todo su contenido.
+    Luego lo vuelve a crear vacío.
     """
-    valid_paths_to_check = [p for p in file_paths_to_delete if p]
-    if not valid_paths_to_check:
-        logger.info("Limpieza síncrona: No hay archivos válidos para eliminar.")
-        return
-
-    logger.info(f"Limpieza síncrona iniciada para: {valid_paths_to_check}")
-    deleted_count = 0
-    for file_path in valid_paths_to_check:
-        try:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                deleted_count += 1
-                logger.info(f"Archivo temporal (sync) eliminado: {file_path}")
-            else:
-                logger.warning(
-                    f"Archivo temporal (sync) no encontrado para eliminar: {file_path}"
-                )
-        except OSError as e_clean:
-            logger.error(
-                f"Error eliminando archivo temporal (sync) {file_path}: {e_clean}"
-            )
-        except Exception as e_unexpected:
-            logger.error(
-                f"Error inesperado eliminando archivo (sync) {file_path}: {e_unexpected}",
-                exc_info=True,
-            )
-    logger.info(
-        f"Limpieza síncrona completada: {deleted_count} archivo(s) eliminado(s) de {len(valid_paths_to_check)} solicitado(s) (existentes)."
-    )
+    try:
+        if os.path.exists(temp_dir_path):
+            shutil.rmtree(temp_dir_path)
+            logger.info(f"Directorio temporal eliminado: {temp_dir_path}")
+        os.makedirs(temp_dir_path, exist_ok=True)
+        logger.info(f"Directorio temporal recreado vacío: {temp_dir_path}")
+    except Exception as e:
+        logger.error(
+            f"Error al limpiar el directorio temporal {temp_dir_path}: {e}",
+            exc_info=True,
+        )

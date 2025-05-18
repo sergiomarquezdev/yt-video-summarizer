@@ -36,10 +36,16 @@ def download_and_extract_audio(
     """
     logger.info(f"Iniciando descarga para URL: {youtube_url}, job_id: {unique_job_id}")
 
+    # Asegurar que el directorio temporal del job existe
+    from yt_transcriber import utils
+
+    utils.ensure_dir_exists(temp_dir)
+
     video_id: str | None = None
 
     ydl_opts_template = {
-        "format": "bestvideo[ext=mp4][height<=1080]+bestaudio/best[ext=mp4][height<=1080]/best",
+        "format": "bestaudio/best",
+        # "format": "bestvideo[ext=mp4][height<=1080]+bestaudio/best[ext=mp4][height<=1080]/best",
         "quiet": False,
         "noplaylist": True,
         "keepvideo": True,  # Necesario para tener la ruta del video si se retiene

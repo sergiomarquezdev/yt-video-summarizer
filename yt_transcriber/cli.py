@@ -93,6 +93,8 @@ def process_transcription(
     downloaded_video_id: str | None = None
 
     unique_job_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
+    job_temp_dir = os.path.join(config.TEMP_DOWNLOAD_DIR, unique_job_id)
+    utils.ensure_dir_exists(job_temp_dir)
 
     try:
         # Paso 1: Asegurar que los directorios de trabajo existen
@@ -114,7 +116,7 @@ def process_transcription(
         # download_and_extract_audio devuelve: (video_path, audio_path, video_id)
         vid_path, aud_path, vid_id = downloader.download_and_extract_audio(
             youtube_url=youtube_url,
-            temp_dir=config.TEMP_DOWNLOAD_DIR,
+            temp_dir=job_temp_dir,
             unique_job_id=unique_job_id,
         )
 
@@ -201,21 +203,8 @@ def process_transcription(
         print(f"Error inesperado: {e}", file=sys.stderr)
         return None
     finally:
-        # Paso 5: Limpieza de archivos temporales (siempre se ejecuta)
-        files_to_clean = []
-        if video_path_temp and os.path.exists(video_path_temp):
-            files_to_clean.append(video_path_temp)
-
-        if audio_path_temp and os.path.exists(audio_path_temp):
-            files_to_clean.append(audio_path_temp)
-
-        if files_to_clean:
-            logger.info(f"Limpiando archivos temporales: {files_to_clean}")
-            utils.cleanup_temp_files_sync(files_to_clean)
-        else:
-            logger.info(
-                "No hay archivos temporales que limpiar o ya fueron limpiados/retenidos."
-            )
+        # Limpieza de la subcarpeta temporal del job
+        utils.cleanup_temp_dir(job_temp_dir)
 
 
 def main():
