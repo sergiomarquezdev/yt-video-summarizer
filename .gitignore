@@ -28,3 +28,7 @@ output_transcripts/
 # Test coverage reports
 .coverage
 htmlcov/
+
+# Cursor
+.cursor/
+.cursorrules

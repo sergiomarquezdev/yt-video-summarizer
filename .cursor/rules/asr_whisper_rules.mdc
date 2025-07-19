@@ -1,7 +1,0 @@
----
-description:
-globs:
-alwaysApply: true
----
-- **Speech-to-Text (ASR)**: Utilize OpenAI Whisper (`openai-whisper`) for accurate audio transcription.
-- Key Dependencies: `openai-whisper`

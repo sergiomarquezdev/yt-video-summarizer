@@ -1,6 +1,0 @@
----
-description:
-globs:
-alwaysApply: true
----
-- Utilize setup scripts (e.g., in `setup/`) to download and organize pre-trained models (e.g., in `models/`).

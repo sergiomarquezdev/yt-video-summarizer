@@ -2,6 +2,6 @@ yt-dlp
 openai-whisper # git+https://github.com/openai/whisper.git
 torch # Versión sin soporte CUDA, solo CPU
 # Instala PyTorch con soporte CUDA manualmente:
-# pip install https://download.pytorch.org/whl/cu128/torch-2.7.0%2Bcu128-cp313-cp313-win_amd64.whl
+# pip install https://download.pytorch.org/whl/cu128/torch-2.7.1+cu128-cp313-cp313t-win_amd64.whl
 python-dotenv
 pydantic

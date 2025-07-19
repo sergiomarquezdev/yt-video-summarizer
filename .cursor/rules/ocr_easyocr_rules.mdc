@@ -1,8 +1,0 @@
----
-description:
-globs:
-alwaysApply: true
----
-- **Optical Character Recognition (OCR)**: Integrate EasyOCR (`easyocr`) for extracting text from video frames.
-- Consider batch processing for OCR or other frame-based analyses if applicable.
-- Key Dependencies: `easyocr`
