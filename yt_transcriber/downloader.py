@@ -27,7 +27,10 @@ class DownloadResult:
 
 
 def download_and_extract_audio(
-    youtube_url: str, temp_dir: Path, unique_job_id: str
+    youtube_url: str,
+    temp_dir: Path,
+    unique_job_id: str,
+    ffmpeg_location: Optional[str] = None,
 ) -> DownloadResult:
     """
     Descarga un video de YouTube, extrae su audio y lo guarda en formato WAV.
@@ -80,11 +83,20 @@ def download_and_extract_audio(
             "logger": logger,
         }
 
+        # Agregar ruta de FFmpeg si se proporciona
+        if ffmpeg_location:
+            ydl_opts["ffmpeg_location"] = ffmpeg_location
+            logger.info(f"Usando FFmpeg desde: {ffmpeg_location}")
+
         # 3. Ejecutar la descarga y el post-procesamiento
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             download_info = ydl.extract_info(youtube_url, download=True)
             video_path_str = ydl.prepare_filename(download_info)
-            video_path = Path(video_path_str) if video_path_str and Path(video_path_str).exists() else None
+            video_path = (
+                Path(video_path_str)
+                if video_path_str and Path(video_path_str).exists()
+                else None
+            )
 
         # 4. Verificar el resultado
         if not expected_audio_path.exists():

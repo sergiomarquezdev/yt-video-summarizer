@@ -1,5 +1,4 @@
 # Configuraciones para la aplicación de transcripción de YouTube
-import os
 import sys
 from pathlib import Path
 from typing import Literal
@@ -29,6 +28,7 @@ class AppSettings(BaseSettings):
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         "INFO", env="LOG_LEVEL"
     )
+    FFMPEG_LOCATION: str = Field("", env="FFMPEG_LOCATION")
 
     class Config:
         # Pydantic v1 style for case-insensitivity

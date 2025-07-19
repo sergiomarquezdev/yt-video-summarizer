@@ -6,7 +6,60 @@ Herramienta CLI para descargar videos de YouTube y transcribirlos a texto usando
 
 - **Python 3.9 o superior.**
 - **ffmpeg**: Necesario para el procesamiento de audio. Asegúrate de que esté instalado y disponible en el PATH de tu sistema.
-  - Puedes descargarlo desde [ffmpeg.org](https://ffmpeg.org/download.html).
+
+### Instalación de FFmpeg en Windows
+
+1. **Descarga FFmpeg:**
+
+   - Ve a [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases)
+   - Descarga `ffmpeg-master-latest-win64-gpl-shared.zip`
+
+2. **Instala FFmpeg:**
+
+   - Extrae el ZIP y copia la carpeta a `C:\ffmpeg`
+   - Verifica que `C:\ffmpeg\bin\ffmpeg.exe` exista
+
+3. **Configuración (elige una opción):**
+
+   **Opción A - Configurar PATH (permanente):**
+
+   ```powershell
+   [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\ffmpeg\bin", [EnvironmentVariableTarget]::User)
+   ```
+
+   **Opción B - Usar ruta directa (recomendado):**
+
+   ```bash
+   python -m yt_transcriber.cli -u "URL" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
+   ```
+
+4. **Verifica la instalación:**
+   ```powershell
+   ffmpeg -version
+   ```
+
+### Solución de problemas con FFmpeg
+
+Si encuentras el error `ffmpeg not found`:
+
+1. **Verifica la instalación:**
+
+   ```powershell
+   & "C:\ffmpeg\bin\ffmpeg.exe" -version
+   ```
+
+2. **Solución rápida - Usa ruta directa:**
+
+   ```bash
+   python -m yt_transcriber.cli -u "URL" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
+   ```
+
+3. **Si necesitas configurar PATH:**
+   ```powershell
+   $env:PATH += ";C:\ffmpeg\bin"  # Temporal
+   # o
+   [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\ffmpeg\bin", [EnvironmentVariableTarget]::User)  # Permanente
+   ```
 
 ## 2. Instalación
 
@@ -42,11 +95,12 @@ Herramienta CLI para descargar videos de YouTube y transcribirlos a texto usando
 Para transcribir un video, ejecuta el siguiente comando desde la raíz del proyecto:
 
 ```bash
-python -m yt_transcriber.cli --url "LA_URL_DE_YOUTUBE" [--language "CODIGO_IDIOMA"]
+python -m yt_transcriber.cli --url "LA_URL_DE_YOUTUBE" [--language "CODIGO_IDIOMA"] [--ffmpeg-location "RUTA_FFMPEG"]
 ```
 
 - `--url` / `-u`: **(Obligatorio)** La dirección web completa del video de YouTube.
 - `--language` / `-l`: **(Opcional)** El código del idioma (ej. `en`, `es`, `fr`) para forzar la transcripción en ese idioma. Si no se especifica, Whisper lo detectará automáticamente.
+- `--ffmpeg-location`: **(Opcional)** Ruta personalizada a FFmpeg (ej. `C:\ffmpeg\bin\ffmpeg.exe`). Útil si FFmpeg no está en el PATH del sistema.
 
 ### Ejemplos
 
@@ -57,8 +111,14 @@ python -m yt_transcriber.cli --url "LA_URL_DE_YOUTUBE" [--language "CODIGO_IDIOM
   ```
 
 - **Forzar transcripción en español:**
+
   ```bash
   python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=video_en_otro_idioma" -l "es"
+  ```
+
+- **Especificar ruta personalizada de FFmpeg:**
+  ```bash
+  python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=video_id" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
   ```
 
 Al finalizar, la consola indicará la ruta donde se guardó el archivo de transcripción:

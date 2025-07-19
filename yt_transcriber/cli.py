@@ -69,7 +69,11 @@ def get_youtube_title(youtube_url: str) -> str:
 
 
 def process_transcription(
-    youtube_url: str, title: str, model, language: Optional[str] = None
+    youtube_url: str,
+    title: str,
+    model,
+    language: Optional[str] = None,
+    ffmpeg_location: Optional[str] = None,
 ) -> Optional[Path]:
     """
     Lógica principal para descargar, transcribir y guardar la transcripción.
@@ -85,6 +89,7 @@ def process_transcription(
             youtube_url=youtube_url,
             temp_dir=job_temp_dir,
             unique_job_id=unique_job_id,
+            ffmpeg_location=ffmpeg_location,
         )
         logger.info(f"Audio extraído a: {download_result.audio_path}")
 
@@ -150,6 +155,12 @@ def main():
         default=None,
         help="Código de idioma (ej. 'en', 'es') para forzar la transcripción en ese idioma.",
     )
+    parser.add_argument(
+        "--ffmpeg-location",
+        type=str,
+        default=None,
+        help="Ruta personalizada a FFmpeg (ej. 'C:\\ffmpeg\\bin\\ffmpeg.exe').",
+    )
     args = parser.parse_args()
 
     setup_logging()
@@ -172,7 +183,11 @@ def main():
     logger.info(f"Título extraído: {title}")
 
     result_path = process_transcription(
-        youtube_url=args.url, title=title, model=model, language=args.language
+        youtube_url=args.url,
+        title=title,
+        model=model,
+        language=args.language,
+        ffmpeg_location=args.ffmpeg_location,
     )
 
     if result_path:

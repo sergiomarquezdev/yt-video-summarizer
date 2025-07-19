@@ -11,15 +11,26 @@ def normalize_title_for_filename(text: str) -> str:
     """
     Normaliza un texto para ser usado como parte de un nombre de archivo.
     - Conserva alfanuméricos, espacios y guiones.
-    - Elimina otros caracteres.
-    - Reemplaza espacios/guiones múltiples con un solo guion bajo.
+    - Elimina caracteres especiales y emojis.
+    - Reemplaza espacios múltiples con un solo espacio.
+    - Reemplaza espacios con guiones bajos.
     - Elimina guiones bajos al inicio/final.
     """
     if not text:
         return "untitled"
+
+    # Eliminar caracteres especiales y emojis, pero mantener espacios
     text = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
-    text = re.sub(r"[\s-]+|", "_", text)
+
+    # Reemplazar espacios múltiples con un solo espacio
+    text = re.sub(r"\s+", " ", text)
+
+    # Reemplazar espacios con guiones bajos
+    text = text.replace(" ", "_")
+
+    # Eliminar guiones bajos al inicio y final
     text = text.strip("_")
+
     return text or "untitled"
 
 
