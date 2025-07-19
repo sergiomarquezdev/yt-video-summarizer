@@ -60,6 +60,8 @@ def get_youtube_title(youtube_url: str) -> str:
 
         with yt_dlp.YoutubeDL({"quiet": True, "noplaylist": True}) as ydl:
             info = ydl.extract_info(youtube_url, download=False)
+            if info is None:
+                return "untitled"
             return info.get("title", "untitled")
     except Exception as e:
         logger.error(f"No se pudo extraer el título automáticamente: {e}")
