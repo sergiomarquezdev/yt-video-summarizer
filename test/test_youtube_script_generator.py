@@ -164,12 +164,30 @@ class TestBatchProcessor:
         """Test BatchProcessor initialization."""
         processor = BatchProcessor(max_workers=3)
         assert processor.max_workers == 3
+        assert processor.temp_dir.exists()
 
-    @pytest.mark.skip(reason="Not implemented yet")
-    def test_batch_processing(self):
-        """Test batch video processing."""
-        # TODO: Implement once batch_processor is ready
-        pass
+    def test_batch_processing_single_video(self):
+        """Test batch processing with a single video."""
+        from youtube_script_generator.youtube_searcher import YouTubeSearcher
+
+        # Get one short video for testing
+        searcher = YouTubeSearcher(max_results=1)
+        videos = searcher.search("Python in 60 seconds", min_duration=1, max_duration=3)
+
+        if not videos:
+            pytest.skip("No short test videos found")
+
+        processor = BatchProcessor()
+        transcripts = processor.process_videos(videos)
+
+        # Verify results
+        assert len(transcripts) == 1
+        transcript = transcripts[0]
+        assert transcript.video.video_id == videos[0].video_id
+        assert transcript.transcript_text
+        assert len(transcript.transcript_text) > 0
+        assert transcript.language
+        assert transcript.transcription_time_seconds > 0
 
 
 class TestPatternAnalyzer:
