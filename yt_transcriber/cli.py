@@ -154,7 +154,8 @@ def process_transcription(
             # 5. Traducir resumen a español
             logger.info("Paso 5: Traduciendo resumen a español...")
             try:
-                translator = ScriptTranslator()
+                # Use cheaper translation model for summaries
+                translator = ScriptTranslator(use_translation_model=True)
                 summary_es = translator.translate_summary(summary_en)
 
                 # Guardar resumen ES
@@ -339,7 +340,8 @@ def command_generate_script(args):
         console.print("[bold yellow]🌍 Traduciendo guión al español...[/bold yellow]")
         from youtube_script_generator.translator import ScriptTranslator
 
-        translator = ScriptTranslator()
+        # Use premium model for script translation (higher quality needed)
+        translator = ScriptTranslator(use_translation_model=False)
         script_es = translator.translate_to_spanish(script)
         console.print(
             f"   [green]✓[/green] Traducción completada "
@@ -534,7 +536,8 @@ def run_generate_script_command(
 
         # Phase 7: Translation to Spanish
         logger.info("Phase 7: Translating script to Spanish...")
-        translator = ScriptTranslator()
+        # Use premium model for script translation (higher quality needed)
+        translator = ScriptTranslator(use_translation_model=False)
         script_es = translator.translate_to_spanish(script)
 
         # Save outputs

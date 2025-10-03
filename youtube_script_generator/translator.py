@@ -20,12 +20,22 @@ class TranslationError(Exception):
 
 
 class ScriptTranslator:
-    """Translates generated scripts to Spanish with intelligent term preservation."""
+    """Translates generated scripts and summaries to Spanish with intelligent term preservation."""
 
-    def __init__(self):
-        """Initialize the translator with Gemini API."""
+    def __init__(self, use_translation_model: bool = True):
+        """Initialize the translator with Gemini API.
+        
+        Args:
+            use_translation_model: If True, uses TRANSLATOR_MODEL (cheaper). 
+                                   If False, uses GEMINI_PRO_MODEL (for script translation).
+        """
         genai.configure(api_key=settings.GOOGLE_API_KEY)
-        self.model = genai.GenerativeModel(settings.GEMINI_PRO_MODEL)
+        
+        # Use cheaper model for summary translation, premium for script translation
+        model_name = settings.TRANSLATOR_MODEL if use_translation_model else settings.GEMINI_PRO_MODEL
+        self.model = genai.GenerativeModel(model_name)
+        
+        logger.info(f"ScriptTranslator initialized with model: {model_name}")
 
     def translate_to_spanish(self, script: GeneratedScript) -> GeneratedScript:
         """Translate script from English to Spanish with context awareness.

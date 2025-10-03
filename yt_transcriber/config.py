@@ -52,8 +52,8 @@ class AppSettings(BaseSettings):
         description="Google Gemini API key para script generation",
     )
     GEMINI_PRO_MODEL: str = Field(
-        default="gemini-2.0-flash-exp",
-        description="Modelo de Gemini a utilizar",
+        default="gemini-1.5-pro",
+        description="Modelo de Gemini para script generation (alta calidad)",
     )
     SCRIPT_OUTPUT_DIR: Path = Field(
         default=Path("output_scripts/"),
@@ -70,12 +70,18 @@ class AppSettings(BaseSettings):
 
     # Video Summarization settings (NEW)
     SUMMARIZER_MODEL: str = Field(
-        default="gemini-2.0-flash-exp",
+        default="gemini-2.5-flash",
         description="Modelo de Gemini para summarization (rápido y económico)",
     )
     SUMMARY_OUTPUT_DIR: Path = Field(
         default=Path("output_summaries/"),
         description="Directorio para resúmenes generados",
+    )
+
+    # Translation settings (NEW)
+    TRANSLATOR_MODEL: str = Field(
+        default="gemini-1.5-flash-8b",
+        description="Modelo de Gemini para traducción (mitad de precio que flash)",
     )
 
 

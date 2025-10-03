@@ -42,7 +42,7 @@ def transcribe_video_ui(
         ffmpeg_location: Optional custom FFmpeg path
 
     Returns:
-        Tuple of (status_message, transcript_path, summary_preview_en, summary_path_en, 
+        Tuple of (status_message, transcript_path, summary_preview_en, summary_path_en,
                   summary_preview_es, summary_path_es)
     """
     try:
