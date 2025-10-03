@@ -70,7 +70,7 @@ class AppSettings(BaseSettings):
 
     # Video Summarization settings (NEW)
     SUMMARIZER_MODEL: str = Field(
-        default="gemini-1.5-flash",
+        default="gemini-2.0-flash-exp",
         description="Modelo de Gemini para summarization (rápido y económico)",
     )
     SUMMARY_OUTPUT_DIR: Path = Field(
