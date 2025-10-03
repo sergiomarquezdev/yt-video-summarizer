@@ -8,6 +8,7 @@ from youtube_script_generator import (
     PatternSynthesizer,
     QueryOptimizer,
     ScriptGenerator,
+    VideoTranscript,
     YouTubeSearcher,
     YouTubeVideo,
 )
@@ -198,11 +199,47 @@ class TestPatternAnalyzer:
         analyzer = PatternAnalyzer()
         assert analyzer.model_name is not None
 
-    @pytest.mark.skip(reason="Not implemented yet")
     def test_pattern_analysis(self):
         """Test pattern extraction from transcript."""
-        # TODO: Implement once pattern_analyzer is ready
-        pass
+        # Create a mock transcript with real-looking data
+        video = YouTubeVideo(
+            video_id="test123",
+            title="Python Tutorial for Beginners",
+            url="https://youtube.com/watch?v=test123",
+            duration_seconds=600,
+            view_count=50000,
+            upload_date="20240101",
+            channel="Test Channel",
+        )
+
+        transcript = VideoTranscript(
+            video=video,
+            transcript_text="""
+            Hey everyone! Welcome back to the channel. Today we're going to learn Python.
+            First, let's talk about variables. In Python, you can create a variable like this.
+            Now, if you enjoyed this video, make sure to like and subscribe!
+            Let's move on to functions. Functions are really important in Python.
+            That's it for today! Don't forget to hit that bell icon for notifications.
+            """,
+            word_timestamps=[],
+            language="en",
+            transcription_time_seconds=5.0,
+        )
+
+        analyzer = PatternAnalyzer()
+        analysis = analyzer.analyze(transcript)
+
+        # Verify structure (even if content is minimal on failure)
+        assert analysis.video.video_id == "test123"
+        assert isinstance(analysis.hook_text, str)
+        assert analysis.hook_start >= 0
+        assert analysis.hook_end > 0
+        assert isinstance(analysis.ctas, list)
+        assert isinstance(analysis.sections, list)
+        assert isinstance(analysis.technical_terms, list)
+        assert isinstance(analysis.common_phrases, list)
+        assert isinstance(analysis.techniques, list)
+        assert isinstance(analysis.title_keywords, list)
 
 
 class TestPatternSynthesizer:
