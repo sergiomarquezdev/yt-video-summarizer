@@ -23,10 +23,11 @@ A powerful CLI tool suite for YouTube content creators:
 ### Script Generator (NEW)
 
 - 🎬 **AI-powered script generation** from real successful videos
-- � **Pattern analysis** of hooks, structure, CTAs, and vocabulary
+- 🔍 **Pattern analysis** of hooks, structure, CTAs, and vocabulary
 - 🧠 **Gemini AI integration** for intelligent synthesis
 - ✍️ **SEO optimization** with auto-generated titles, descriptions, and tags
 - 📈 **Quality scoring** based on proven patterns
+- 🌍 **Automatic bilingual output** (English + Spanish) with technical term preservation
 
 ## 📋 Table of Contents
 
@@ -254,24 +255,25 @@ python -m yt_transcriber.cli generate-script \
 
 #### Output
 
-The tool generates two files in timestamped directories:
+The tool generates **bilingual scripts automatically** (English + Spanish):
 
 ```
-📁 output_scripts/script_20240128_143022/
-  ├── 📄 script.md          # Generated script with SEO metadata
-  └── 📄 synthesis.md       # Pattern analysis report
+📁 output_scripts/
+  ├── 📄 {topic}_EN.md      # Original script in English
+  └── 📄 {topic}_ES.md      # Translated script in Spanish
 
-📁 output_analysis/analysis_20240128_143022/
-  └── 📄 synthesis_report_20240128_143022.md
+📁 output_analysis/
+  └── 📄 {topic}_synthesis.md   # Pattern analysis report
 ```
 
-**What you get:**
+**What you get (in BOTH languages):**
 
 - ✅ **Complete script** with intro, body, and outro
 - ✅ **SEO optimization** (title, description, tags)
 - ✅ **Quality score** (1-100 based on structure and SEO)
 - ✅ **Pattern analysis** from successful videos
 - ✅ **Estimated duration** based on word count
+- ✅ **Automatic Spanish translation** with technical term preservation
 
 #### See More
 

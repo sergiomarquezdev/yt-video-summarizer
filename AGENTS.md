@@ -11,12 +11,12 @@ YouTube Video Transcriber & Script Generator - A Python CLI tool with dual funct
 **Main Entry Points:**
 
 - `yt_transcriber/cli.py` - Main CLI with subcommands (transcribe, generate-script)
-- `youtube_script_generator/` - Script generation pipeline (6 phases)
+- `youtube_script_generator/` - Script generation pipeline (7 phases)
 
 **Architecture:** Modular CLI with two independent workflows:
 
 - **Transcription Pipeline**: Download → Transcribe → Save
-- **Script Generation Pipeline**: Query Optimization → YouTube Search → Batch Download/Transcribe → Pattern Analysis → Synthesis → Script Generation
+- **Script Generation Pipeline**: Query Optimization → YouTube Search → Batch Download/Transcribe → Pattern Analysis → Synthesis → Script Generation → Translation (EN→ES)
 
 ## Project Structure
 
@@ -35,7 +35,8 @@ yt-video-summarizer/
 │   ├── batch_processor.py  # Parallel video processing
 │   ├── pattern_analyzer.py # Pattern extraction from transcripts
 │   ├── synthesizer.py      # Pattern aggregation and synthesis
-│   └── script_generator.py # Script generation with SEO
+│   ├── script_generator.py # Script generation with SEO
+│   └── translator.py       # Automatic Spanish translation (NEW)
 ├── test/                    # Test suite
 │   ├── conftest.py         # Pytest fixtures
 │   ├── test_infrastructure.py        # Infrastructure tests (4 tests)
@@ -472,12 +473,13 @@ OUTPUT_ANALYSIS_DIR=output_analysis
 
 ### Pipeline Overview
 
-The Script Generator implements a 6-phase pipeline for generating AI-powered YouTube scripts:
+The Script Generator implements a 7-phase pipeline for generating AI-powered YouTube scripts:
 
 ```
 User Idea → [Phase 1] Query Optimization → [Phase 2] YouTube Search →
 [Phase 3] Batch Processing → [Phase 4] Pattern Analysis →
-[Phase 5] Pattern Synthesis → [Phase 6] Script Generation → Output
+[Phase 5] Pattern Synthesis → [Phase 6] Script Generation →
+[Phase 7] Translation (EN→ES) → Output (Bilingual)
 ```
 
 ### Core Components
@@ -540,6 +542,17 @@ User Idea → [Phase 1] Query Optimization → [Phase 2] YouTube Search →
   - Fallback generation without AI
 - **Output**: `GeneratedScript` with markdown content, SEO metadata, quality_score
 
+#### Phase 7: Script Translator (`translator.py`)
+- **Purpose**: Translate generated scripts from English to Spanish
+- **AI Integration**: Gemini API for contextual translation
+- **Features**:
+  - Contextual translation (not literal word-by-word)
+  - Preserves technical terms (n8n, Docker, npm, workflow, API, etc.)
+  - Maintains exact markdown formatting (headers, code blocks, lists)
+  - Adapts CTAs to Spanish style ("Subscribe" → "Suscríbete")
+  - Bilingual SEO tags (original + Spanish variants)
+- **Output**: `GeneratedScript` in Spanish with natural language and preserved technical context
+
 ### Data Models (`models.py`)
 
 All components use strongly-typed dataclasses:
@@ -555,16 +568,18 @@ All components use strongly-typed dataclasses:
 - **Reuses**: `Downloader`, `Transcriber`, `Settings` from `yt_transcriber`
 - **Extends**: CLI with new `generate-script` subcommand
 - **Output**: Separate directories (`output_scripts/`, `output_analysis/`)
-- **Dependencies**: Adds `google-generativeai`, `google-api-python-client`
+  - Bilingual scripts: `{topic}_EN.md` + `{topic}_ES.md`
+- **Dependencies**: Adds `google-generativeai` for Gemini API
 
 ### Cost & Performance
 
-- **API Costs**: ~$0.066 per 10 videos (13 Gemini calls)
+- **API Costs**: ~$0.071 per 10 videos (14 Gemini calls including translation)
 - **Execution Time**: 8-10 minutes for 10 videos on RTX 3060
   - Download: 1-2 min
   - Transcription: 3-5 min (23 sec/video avg)
   - Pattern Analysis: 2-3 min
   - Synthesis + Generation: <1 min
+  - Translation (ES): ~20 seconds
 - **Output Quality**: 85-95 quality score with proper synthesis patterns
 
 For detailed usage examples and troubleshooting, see [docs/YOUTUBE_SCRIPT_GENERATOR.md](docs/YOUTUBE_SCRIPT_GENERATOR.md).
