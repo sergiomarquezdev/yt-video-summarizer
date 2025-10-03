@@ -2,33 +2,38 @@
 
 ## Project Overview
 
-YouTube Video Transcriber & Script Generator - A Python CLI tool with dual functionality:
+YouTube Video Transcriber & Script Generator - A Python tool with dual functionality and web interface:
 
 1. **Video Transcriber**: Downloads YouTube videos and transcribes them to text using OpenAI's Whisper model with CUDA acceleration
 2. **Script Generator**: Analyzes successful YouTube videos in your niche and generates AI-powered scripts using Google's Gemini API
+3. **Web Interface** (NEW): Gradio-based web UI for easy access to both functionalities
 
-**Tech Stack:** Python 3.13+, PyTorch (CUDA 12.8), Whisper, yt-dlp, Pydantic, Google Gemini API, UV (package manager)
+**Tech Stack:** Python 3.13+, PyTorch (CUDA 12.8), Whisper, yt-dlp, Pydantic, Google Gemini API, Gradio, UV (package manager)
 **Main Entry Points:**
 
 - `yt_transcriber/cli.py` - Main CLI with subcommands (transcribe, generate-script)
+- `frontend/gradio_app.py` - Gradio web interface (NEW)
 - `youtube_script_generator/` - Script generation pipeline (7 phases)
 
-**Architecture:** Modular CLI with two independent workflows:
+**Architecture:** Modular system with three access methods:
 
-- **Transcription Pipeline**: Download → Transcribe → Save
-- **Script Generation Pipeline**: Query Optimization → YouTube Search → Batch Download/Transcribe → Pattern Analysis → Synthesis → Script Generation → Translation (EN→ES)
+- **CLI**: Command-line interface for scripting and automation
+- **Web UI** (NEW): Browser-based interface using Gradio
+- **Two Independent Pipelines**:
+  - **Transcription Pipeline**: Download → Transcribe → Save
+  - **Script Generation Pipeline**: Query Optimization → YouTube Search → Batch Download/Transcribe → Pattern Analysis → Synthesis → Script Generation → Translation (EN→ES)
 
 ## Project Structure
 
 ```
 yt-video-summarizer/
 ├── yt_transcriber/          # Main package (transcription)
-│   ├── cli.py              # CLI entry point with subcommands
+│   ├── cli.py              # CLI entry point with subcommands + wrapper functions
 │   ├── config.py           # Pydantic settings (reads .env)
 │   ├── downloader.py       # YouTube video downloading (yt-dlp)
 │   ├── transcriber.py      # Whisper transcription logic
 │   └── utils.py            # Shared utilities
-├── youtube_script_generator/  # Script generation pipeline (NEW)
+├── youtube_script_generator/  # Script generation pipeline
 │   ├── models.py           # Dataclasses (YouTubeVideo, VideoAnalysis, etc.)
 │   ├── query_optimizer.py  # AI query optimization with Gemini
 │   ├── youtube_searcher.py # YouTube search with quality filtering
@@ -36,20 +41,24 @@ yt-video-summarizer/
 │   ├── pattern_analyzer.py # Pattern extraction from transcripts
 │   ├── synthesizer.py      # Pattern aggregation and synthesis
 │   ├── script_generator.py # Script generation with SEO
-│   └── translator.py       # Automatic Spanish translation (NEW)
+│   └── translator.py       # Automatic Spanish translation
+├── frontend/               # Web interface (NEW)
+│   ├── __init__.py        # Module initialization
+│   ├── gradio_app.py      # Gradio web UI (312 lines)
+│   └── README.md          # Frontend documentation
 ├── test/                    # Test suite
 │   ├── conftest.py         # Pytest fixtures
 │   ├── test_infrastructure.py        # Infrastructure tests (4 tests)
 │   ├── test_youtube_script_generator.py  # Script generator tests (18 tests)
 │   └── check_pytorch_cuda.py  # CUDA availability validator
-├── docs/                    # Documentation (NEW)
+├── docs/                    # Documentation
 │   └── YOUTUBE_SCRIPT_GENERATOR.md  # Comprehensive script generator guide
 ├── temp_files/             # Temporary media storage (auto-cleaned)
-├── temp_batch/             # Temporary batch processing files (NEW)
+├── temp_batch/             # Temporary batch processing files
 ├── output_transcripts/     # Transcript outputs
-├── output_scripts/         # Generated scripts with SEO (NEW)
-├── output_analysis/        # Pattern synthesis reports (NEW)
-├── Makefile                # Development commands (setup, test, lint, etc.)
+├── output_scripts/         # Generated scripts with SEO
+├── output_analysis/        # Pattern synthesis reports
+├── Makefile                # Development commands (setup, test, lint, start, etc.)
 ├── pyproject.toml          # Project metadata and dependencies (UV/pip)
 ├── .env                    # Environment config (not committed)
 └── .env.example           # Template for required env vars
@@ -223,6 +232,26 @@ uv run pre-commit run
 - ✅ Debug statements
 
 **Note**: Type checking (Mypy) is run via `make typecheck`, not in pre-commit hooks, to keep commits fast.
+
+### Run the Web Interface (NEW)
+
+```bash
+# Launch Gradio web UI (auto-opens browser at http://localhost:7860)
+make start
+
+# Or use direct command
+uv run python frontend/gradio_app.py
+```
+
+**Features:**
+
+- Two-column layout (Transcribe | Generate Script)
+- Real-time progress indicators
+- Form validation and error messages
+- One-click file downloads
+- Customizable parameters (language, duration, style, etc.)
+
+See [frontend/README.md](frontend/README.md) for detailed documentation.
 
 ### Run the CLI
 
@@ -543,6 +572,7 @@ User Idea → [Phase 1] Query Optimization → [Phase 2] YouTube Search →
 - **Output**: `GeneratedScript` with markdown content, SEO metadata, quality_score
 
 #### Phase 7: Script Translator (`translator.py`)
+
 - **Purpose**: Translate generated scripts from English to Spanish
 - **AI Integration**: Gemini API for contextual translation
 - **Features**:

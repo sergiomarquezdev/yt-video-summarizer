@@ -34,6 +34,8 @@ dependencies = [
     # YouTube Script Generator dependencies
     "google-generativeai>=0.3.0",  # Gemini API
     "rich>=13.7.0",  # CLI progress bars and formatting
+    # Gradio web interface
+    "gradio>=5.0.0",  # Web UI for transcription and script generation
 ]
 
 [project.optional-dependencies]

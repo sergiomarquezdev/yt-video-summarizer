@@ -346,6 +346,163 @@ def command_generate_script(args):
         sys.exit(1)
 
 
+def run_transcribe_command(
+    url: str,
+    language: str | None = None,
+    ffmpeg_location: str | None = None,
+) -> str | None:
+    """Wrapper function for transcription to be called from Gradio UI.
+
+    Args:
+        url: YouTube video URL
+        language: Optional language code (e.g., 'es', 'en')
+        ffmpeg_location: Optional custom FFmpeg path
+
+    Returns:
+        Path to the saved transcript file, or None if failed
+    """
+    setup_logging()
+
+    # Validate YouTube URL
+    if not (url.startswith("https://www.youtube.com/") or url.startswith("https://youtu.be/")):
+        logger.error(f"Invalid YouTube URL: {url}")
+        return None
+
+    # Load Whisper model
+    model = load_whisper_model()
+
+    # Get title and process
+    logger.info("Extracting video title...")
+    title = get_youtube_title(url)
+    logger.info(f"Title extracted: {title}")
+
+    # Handle "Auto-detectar" option from Gradio dropdown
+    lang = None if language == "Auto-detectar" else language
+
+    result_path = process_transcription(
+        youtube_url=url,
+        title=title,
+        model=model,
+        language=lang,
+        ffmpeg_location=ffmpeg_location,
+    )
+
+    if result_path:
+        return str(result_path)
+    else:
+        return None
+
+
+def run_generate_script_command(
+    idea: str,
+    max_videos: int = 10,
+    duration: int = 10,
+    style: str | None = None,
+) -> tuple[str | None, str | None]:
+    """Wrapper function for script generation to be called from Gradio UI.
+
+    Args:
+        idea: Video topic/idea
+        max_videos: Maximum videos to analyze (5-20)
+        duration: Target video duration in minutes (5-30)
+        style: Optional video style (e.g., "casual", "educational")
+
+    Returns:
+        Tuple of (script_path_en, script_path_es) or (None, None) if failed
+    """
+    from time import time
+
+    from youtube_script_generator import (
+        BatchProcessor,
+        PatternAnalyzer,
+        PatternSynthesizer,
+        QueryOptimizer,
+        ScriptGenerator,
+        YouTubeSearcher,
+    )
+    from youtube_script_generator.translator import ScriptTranslator
+
+    setup_logging()
+
+    start_time = time()
+
+    try:
+        # Phase 1: Query Optimization
+        logger.info("Phase 1: Optimizing search query...")
+        optimizer = QueryOptimizer()
+        optimized = optimizer.optimize(idea)
+
+        # Phase 2: YouTube Search
+        logger.info("Phase 2: Searching YouTube videos...")
+        searcher = YouTubeSearcher(max_results=max_videos)
+        videos = searcher.search(
+            optimized.optimized_query,
+            min_duration=5,  # Fixed range for now
+            max_duration=45,
+        )
+
+        # Phase 3: Batch Processing
+        logger.info(f"Phase 3: Processing {len(videos)} videos...")
+        processor = BatchProcessor()
+        transcripts = processor.process_videos(videos)
+
+        # Phase 4: Pattern Analysis
+        logger.info(f"Phase 4: Analyzing patterns from {len(transcripts)} videos...")
+        analyzer = PatternAnalyzer()
+        analyses = [analyzer.analyze(t) for t in transcripts]
+
+        # Phase 5: Pattern Synthesis
+        logger.info("Phase 5: Synthesizing best practices...")
+        synthesizer = PatternSynthesizer()
+        synthesis = synthesizer.synthesize(analyses, topic=idea)
+
+        # Phase 6: Script Generation
+        logger.info("Phase 6: Generating optimized script...")
+        generator = ScriptGenerator()
+        script = generator.generate(
+            synthesis=synthesis,
+            user_idea=idea,
+            duration_minutes=duration,
+            style_preference=style,
+        )
+
+        # Phase 7: Translation to Spanish
+        logger.info("Phase 7: Translating script to Spanish...")
+        translator = ScriptTranslator()
+        script_es = translator.translate_to_spanish(script)
+
+        # Save outputs
+        logger.info("Saving output files...")
+        output_scripts = Path("output_scripts")
+        output_analysis = Path("output_analysis")
+        output_scripts.mkdir(exist_ok=True)
+        output_analysis.mkdir(exist_ok=True)
+
+        # Generate safe filename
+        safe_filename = "".join(c if c.isalnum() or c in " -_" else "_" for c in idea)
+        safe_filename = safe_filename.replace(" ", "_")[:50]
+
+        # Save scripts
+        script_path_en = output_scripts / f"{safe_filename}_EN.md"
+        script_path_en.write_text(script.script_markdown, encoding="utf-8")
+
+        script_path_es = output_scripts / f"{safe_filename}_ES.md"
+        script_path_es.write_text(script_es.script_markdown, encoding="utf-8")
+
+        # Save synthesis report
+        synthesis_path = output_analysis / f"{safe_filename}_synthesis.md"
+        synthesis_path.write_text(synthesis.markdown_report, encoding="utf-8")
+
+        elapsed = time() - start_time
+        logger.info(f"Process completed in {elapsed / 60:.0f}m {elapsed % 60:.0f}s")
+
+        return str(script_path_en), str(script_path_es)
+
+    except Exception as e:
+        logger.error(f"Error during script generation: {e}", exc_info=True)
+        return None, None
+
+
 def main():
     """Punto de entrada principal para el CLI."""
     parser = argparse.ArgumentParser(

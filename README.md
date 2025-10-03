@@ -13,6 +13,13 @@ A powerful CLI tool suite for YouTube content creators:
 
 ## ✨ Features
 
+### Web Interface (NEW)
+
+- 🌐 **Gradio web UI** for easy access from any browser
+- 📝 **Two-column layout** for transcription and script generation
+- 🎨 **Clean, intuitive interface** with real-time progress
+- 📥 **One-click downloads** for transcripts and scripts
+
 ### Video Transcriber
 
 - 🚀 **Fast transcription** with CUDA GPU acceleration support
@@ -20,7 +27,7 @@ A powerful CLI tool suite for YouTube content creators:
 - 📝 **High accuracy** using OpenAI's Whisper models (tiny to large)
 - 🔄 **Automatic cleanup** of temporary files
 
-### Script Generator (NEW)
+### Script Generator
 
 - 🎬 **AI-powered script generation** from real successful videos
 - 🔍 **Pattern analysis** of hooks, structure, CTAs, and vocabulary
@@ -33,6 +40,7 @@ A powerful CLI tool suite for YouTube content creators:
 
 - [Prerequisites](#-prerequisites)
 - [Quick Start](#-quick-start)
+- [Web Interface](#-web-interface-new)
 - [Usage](#-usage)
   - [Transcribe Videos](#transcribe-videos)
   - [Generate Scripts (NEW)](#generate-scripts-new)
@@ -145,6 +153,43 @@ python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 **For Developers:** Use `make setup` for automated environment configuration with modern tooling (UV, Ruff, Mypy). See [AGENTS.md](AGENTS.md) for details.
+
+## 🌐 Web Interface (NEW)
+
+The easiest way to use the tool is through the **Gradio web interface**:
+
+```bash
+# Launch web interface (auto-opens browser)
+make start
+
+# Or using direct command
+uv run python frontend/gradio_app.py
+```
+
+The interface will open at **http://localhost:7860** with a two-column layout:
+
+- **Left column**: Transcribe YouTube videos
+
+  - Input URL, select language, customize FFmpeg path
+  - View progress in real-time
+  - Download transcription file
+
+- **Right column**: Generate YouTube scripts
+  - Input video idea and parameters
+  - Adjust max videos, duration, and style
+  - Download bilingual scripts (EN + ES)
+
+**Why use the web interface?**
+
+- ✅ No need to remember CLI commands
+- ✅ User-friendly forms with validation
+- ✅ Real-time progress indicators
+- ✅ One-click file downloads
+- ✅ Works in any browser
+
+For detailed documentation, see [frontend/README.md](frontend/README.md).
+
+---
 
 ## 💻 Usage
 

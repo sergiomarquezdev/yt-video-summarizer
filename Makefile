@@ -1,4 +1,4 @@
-.PHONY: help setup install test test-v test-cov test-cuda lint lint-fix format format-check typecheck check clean clean-all run update show-env
+.PHONY: help setup install test test-v test-cov test-cuda lint lint-fix format format-check typecheck check clean clean-all run start update show-env
 
 .DEFAULT_GOAL := help
 
@@ -50,6 +50,7 @@ help: ## Show this help message
 	@echo.
 	@echo Development:
 	@echo   make run URL="..." - Run CLI with URL
+	@echo   make start       - Launch Gradio web interface
 	@echo.
 	@echo Cleanup:
 	@echo   make clean       - Remove temp files and caches
@@ -113,8 +114,26 @@ install: setup ## Alias for 'make setup'
 
 ##@ Development
 
-run: ## Run the CLI (set URL=<youtube-url>)
-	@if not defined URL (echo Usage: make run URL=https://www.youtube.com/watch?v=VIDEO_ID && uv run python -m yt_transcriber.cli --help) else (uv run python -m yt_transcriber.cli --url "$(URL)")
+run: ## Run CLI with URL (e.g., make run URL="https://...")
+ifndef URL
+	$(error URL is not set. Usage: make run URL="https://www.youtube.com/watch?v=...")
+endif
+	uv run python -m yt_transcriber.cli transcribe --url "$(URL)"
+
+start: ## Launch Gradio web interface (opens browser automatically)
+	@echo.
+	@echo ======================================
+	@echo   Starting Gradio Web Interface
+	@echo ======================================
+	@echo.
+	@echo Server will start at: http://localhost:7860
+	@echo Browser will open automatically...
+	@echo.
+	@echo Press Ctrl+C to stop the server
+	@echo.
+	uv run python frontend/gradio_app.py
+
+##@ Code Quality
 
 ##@ Testing
 
