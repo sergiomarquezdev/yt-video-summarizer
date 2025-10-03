@@ -12,6 +12,9 @@ __pycache__/
 # Archivos temporales y de salida (según config.py)
 temp_files/
 output_transcripts/
+output_analysis/
+output_scripts/
+temp_batch/
 
 # Logs
 *.log

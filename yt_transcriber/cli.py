@@ -4,9 +4,15 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from rich.console import Console
+
 from yt_transcriber import config, downloader, transcriber, utils
 from yt_transcriber.downloader import DownloadError
 from yt_transcriber.transcriber import TranscriptionError
+
+
+# Initialize Rich console for beautiful output
+console = Console()
 
 
 # Configuración del logger
@@ -133,31 +139,8 @@ def process_transcription(
         utils.cleanup_temp_dir(job_temp_dir)
 
 
-def main():
-    """Punto de entrada principal para el CLI."""
-    parser = argparse.ArgumentParser(description="Transcribe un video de YouTube a texto.")
-    parser.add_argument(
-        "-u",
-        "--url",
-        required=True,
-        type=str,
-        help="URL completa del video de YouTube.",
-    )
-    parser.add_argument(
-        "-l",
-        "--language",
-        type=str,
-        default=None,
-        help="Código de idioma (ej. 'en', 'es') para forzar la transcripción en ese idioma.",
-    )
-    parser.add_argument(
-        "--ffmpeg-location",
-        type=str,
-        default=None,
-        help="Ruta personalizada a FFmpeg (ej. 'C:\\ffmpeg\\bin\\ffmpeg.exe').",
-    )
-    args = parser.parse_args()
-
+def command_transcribe(args):
+    """Command handler for transcribing a single YouTube video."""
     setup_logging()
 
     # Validar la URL de YouTube
@@ -189,6 +172,255 @@ def main():
         sys.exit(0)
     else:
         logger.error("El proceso de transcripción falló.")
+        sys.exit(1)
+
+
+def command_generate_script(args):
+    """Command handler for generating YouTube scripts from search."""
+    from time import time
+
+    from youtube_script_generator import (
+        BatchProcessor,
+        PatternAnalyzer,
+        PatternSynthesizer,
+        QueryOptimizer,
+        ScriptGenerator,
+        YouTubeSearcher,
+    )
+
+    setup_logging()
+
+    start_time = time()
+
+    # Display header
+    console.print("\n[bold cyan]🎬 YouTube-Powered Script Generator[/bold cyan]")
+    console.print("━" * 50)
+    console.print(f"\n[bold]💡 Idea:[/bold] {args.idea}")
+    console.print()
+
+    try:
+        # Phase 1: Query Optimization
+        console.print("[bold yellow]🔧 Optimizando query de búsqueda...[/bold yellow]")
+        optimizer = QueryOptimizer()
+        optimized = optimizer.optimize(args.idea)
+        console.print(
+            f"   [green]✓[/green] Query optimizada: [cyan]{optimized.optimized_query}[/cyan]"
+        )
+        console.print()
+
+        # Phase 2: YouTube Search
+        console.print("[bold yellow]🔍 Buscando videos en YouTube...[/bold yellow]")
+        searcher = YouTubeSearcher(max_results=args.max_videos)
+        videos = searcher.search(
+            optimized.optimized_query,
+            min_duration=args.min_duration,
+            max_duration=args.max_duration,
+        )
+        avg_duration = sum(v.duration_minutes for v in videos) / len(videos)
+        avg_views = sum(v.view_count for v in videos) / len(videos)
+        console.print(
+            f"   [green]✓[/green] {len(videos)} videos encontrados "
+            f"(duración prom: {avg_duration:.1f} min, views prom: {avg_views / 1000:.1f}K)"
+        )
+        console.print()
+
+        # Phase 3: Batch Processing (Download + Transcribe)
+        console.print(
+            f"[bold yellow]📥 Descargando y transcribiendo {len(videos)} videos...[/bold yellow]"
+        )
+        processor = BatchProcessor()
+        transcripts = processor.process_videos(videos)
+        console.print(f"   [green]✓[/green] {len(transcripts)} videos procesados exitosamente")
+        console.print()
+
+        # Phase 4: Pattern Analysis
+        console.print(
+            f"[bold yellow]📊 Analizando patrones de {len(transcripts)} videos...[/bold yellow]"
+        )
+        analyzer = PatternAnalyzer()
+        analyses = [analyzer.analyze(t) for t in transcripts]
+        avg_effectiveness = sum(a.effectiveness_score for a in analyses) / len(analyses)
+        console.print(
+            f"   [green]✓[/green] Análisis completado "
+            f"(efectividad promedio: {avg_effectiveness:.1f}/5.0)"
+        )
+        console.print()
+
+        # Phase 5: Pattern Synthesis
+        console.print("[bold yellow]🧠 Sintetizando mejores prácticas...[/bold yellow]")
+        synthesizer = PatternSynthesizer()
+        synthesis = synthesizer.synthesize(analyses, topic=args.idea)
+        console.print(
+            f"   [green]✓[/green] Síntesis completada "
+            f"({len(synthesis.top_hooks)} hooks, "
+            f"{len(synthesis.effective_ctas)} CTAs, "
+            f"{len(synthesis.notable_techniques)} técnicas)"
+        )
+        console.print()
+
+        # Phase 6: Script Generation
+        console.print("[bold yellow]✍️ Generando guión optimizado...[/bold yellow]")
+        generator = ScriptGenerator()
+        script = generator.generate(
+            synthesis=synthesis,
+            user_idea=args.idea,
+            duration_minutes=args.duration,
+            style_preference=args.style,
+        )
+        console.print(
+            f"   [green]✓[/green] Guión generado "
+            f"({script.word_count} palabras, {script.estimated_duration_minutes} min)"
+        )
+        console.print()
+
+        # Save outputs
+        console.print("[bold yellow]💾 Guardando archivos...[/bold yellow]")
+
+        # Ensure output directories exist
+        output_scripts = Path("output_scripts")
+        output_analysis = Path("output_analysis")
+        output_scripts.mkdir(exist_ok=True)
+        output_analysis.mkdir(exist_ok=True)
+
+        # Generate safe filename from idea
+        safe_filename = "".join(c if c.isalnum() or c in " -_" else "_" for c in args.idea)
+        safe_filename = safe_filename.replace(" ", "_")[:50]
+
+        # Save script
+        script_path = output_scripts / f"{safe_filename}.md"
+        script_path.write_text(script.script_markdown, encoding="utf-8")
+
+        # Save synthesis report
+        synthesis_path = output_analysis / f"{safe_filename}_synthesis.md"
+        synthesis_path.write_text(synthesis.markdown_report, encoding="utf-8")
+
+        console.print(f"   [green]✓[/green] Guión guardado: [cyan]{script_path}[/cyan]")
+        console.print(f"   [green]✓[/green] Síntesis guardada: [cyan]{synthesis_path}[/cyan]")
+        console.print()
+
+        # Display summary
+        elapsed = time() - start_time
+        console.print("━" * 50)
+        console.print(
+            f"[bold green]✅ Proceso completado en {elapsed / 60:.0f}m {elapsed % 60:.0f}s[/bold green]"
+        )
+        console.print()
+
+        console.print("[bold]📄 Estadísticas del guión:[/bold]")
+        console.print(f"   - Título: {script.seo_title}")
+        console.print(f"   - Duración estimada: {script.estimated_duration_minutes} minutos")
+        console.print(f"   - Palabras: {script.word_count:,}")
+        console.print(f"   - Tags SEO: {len(script.seo_tags)}")
+        console.print(f"   - Calidad estimada: {script.estimated_quality_score}/100")
+        console.print()
+
+        console.print(
+            f"[bold]🎯 Basado en análisis de {synthesis.num_videos_analyzed} videos "
+            f"(efectividad prom: {synthesis.average_effectiveness:.1f}/5.0)[/bold]"
+        )
+        console.print()
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]⚠️  Proceso interrumpido por el usuario[/yellow]")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error durante la generación: {e}", exc_info=True)
+        console.print(f"\n[bold red]❌ Error: {e}[/bold red]")
+        sys.exit(1)
+
+
+def main():
+    """Punto de entrada principal para el CLI."""
+    parser = argparse.ArgumentParser(
+        description="YouTube Video Transcriber & Script Generator",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    # Create subcommands
+    subparsers = parser.add_subparsers(dest="command", help="Comandos disponibles")
+
+    # Subcommand: transcribe
+    transcribe_parser = subparsers.add_parser(
+        "transcribe",
+        help="Transcribe un video de YouTube a texto",
+    )
+    transcribe_parser.add_argument(
+        "-u",
+        "--url",
+        required=True,
+        type=str,
+        help="URL completa del video de YouTube.",
+    )
+    transcribe_parser.add_argument(
+        "-l",
+        "--language",
+        type=str,
+        default=None,
+        help="Código de idioma (ej. 'en', 'es') para forzar la transcripción en ese idioma.",
+    )
+    transcribe_parser.add_argument(
+        "--ffmpeg-location",
+        type=str,
+        default=None,
+        help="Ruta personalizada a FFmpeg (ej. 'C:\\ffmpeg\\bin\\ffmpeg.exe').",
+    )
+
+    # Subcommand: generate-script
+    generate_parser = subparsers.add_parser(
+        "generate-script",
+        help="Genera un guión de YouTube basado en videos exitosos",
+    )
+    generate_parser.add_argument(
+        "-i",
+        "--idea",
+        required=True,
+        type=str,
+        help="Idea del video (ej. 'crear API REST con FastAPI')",
+    )
+    generate_parser.add_argument(
+        "-m",
+        "--max-videos",
+        type=int,
+        default=10,
+        help="Número máximo de videos a analizar (default: 10)",
+    )
+    generate_parser.add_argument(
+        "-d",
+        "--duration",
+        type=int,
+        default=10,
+        help="Duración objetivo del guión en minutos (default: 10)",
+    )
+    generate_parser.add_argument(
+        "--min-duration",
+        type=int,
+        default=5,
+        help="Duración mínima de videos a buscar en minutos (default: 5)",
+    )
+    generate_parser.add_argument(
+        "--max-duration",
+        type=int,
+        default=45,
+        help="Duración máxima de videos a buscar en minutos (default: 45)",
+    )
+    generate_parser.add_argument(
+        "-s",
+        "--style",
+        type=str,
+        default=None,
+        help="Preferencia de estilo (ej. 'educational', 'entertaining')",
+    )
+
+    args = parser.parse_args()
+
+    # Handle subcommands
+    if args.command == "transcribe":
+        command_transcribe(args)
+    elif args.command == "generate-script":
+        command_generate_script(args)
+    else:
+        parser.print_help()
+        sys.exit(1)
         sys.exit(1)
 
 
