@@ -1,10 +1,13 @@
 """Tests for YouTube Script Generator module."""
 
+from datetime import UTC, datetime
+
 import pytest
 
 from youtube_script_generator import (
     BatchProcessor,
     PatternAnalyzer,
+    PatternSynthesis,
     PatternSynthesizer,
     QueryOptimizer,
     ScriptGenerator,
@@ -322,8 +325,119 @@ class TestScriptGenerator:
         generator = ScriptGenerator()
         assert generator.model_name is not None
 
-    @pytest.mark.skip(reason="Not implemented yet")
     def test_script_generation(self):
         """Test script generation from synthesis."""
-        # TODO: Implement once script_generator is ready
-        pass
+        # Create a mock synthesis
+        synthesis = PatternSynthesis(
+            topic="Python FastAPI Tutorial",
+            num_videos_analyzed=5,
+            top_hooks=[
+                {
+                    "text": "¿Sabías que FastAPI es 10x más rápido que Flask?",
+                    "type": "question",
+                    "effectiveness": "high",
+                    "weighted_score": 4.5,
+                    "duration_seconds": 12,
+                    "video_title": "FastAPI Speed Comparison",
+                },
+                {
+                    "text": "Hoy vamos a crear una API REST en 10 minutos",
+                    "type": "promise",
+                    "effectiveness": "high",
+                    "weighted_score": 4.3,
+                    "duration_seconds": 8,
+                    "video_title": "FastAPI Quick Start",
+                },
+            ],
+            optimal_structure={
+                "hook_duration_avg": 12.0,
+                "intro_end_avg": 60.0,
+                "num_sections_mode": 4,
+                "conclusion_start_avg": 540.0,
+                "total_videos": 5,
+            },
+            effective_ctas=[
+                {
+                    "text": "Suscríbete para más tutoriales",
+                    "type": "subscribe",
+                    "frequency": 4,
+                    "avg_position_percent": 15.0,
+                },
+                {
+                    "text": "Dale like si te está gustando",
+                    "type": "like",
+                    "frequency": 3,
+                    "avg_position_percent": 50.0,
+                },
+            ],
+            key_vocabulary={
+                "technical_terms": [
+                    {"term": "FastAPI", "frequency": 15},
+                    {"term": "async", "frequency": 10},
+                    {"term": "Pydantic", "frequency": 8},
+                ],
+                "common_phrases": [
+                    {"phrase": "vamos a ver", "frequency": 5},
+                    {"phrase": "como pueden ver", "frequency": 4},
+                ],
+                "transition_phrases": [
+                    {"phrase": "ahora vamos a", "frequency": 6},
+                    {"phrase": "el siguiente paso", "frequency": 4},
+                ],
+            },
+            notable_techniques=[
+                {
+                    "name": "Live coding",
+                    "description": "Codifica en tiempo real",
+                    "frequency": 4,
+                },
+                {
+                    "name": "Ejemplos prácticos",
+                    "description": "Muestra casos de uso reales",
+                    "frequency": 5,
+                },
+            ],
+            seo_patterns={
+                "title_keywords": [
+                    {"keyword": "FastAPI", "frequency": 15},
+                    {"keyword": "Python", "frequency": 12},
+                    {"keyword": "Tutorial", "frequency": 10},
+                ],
+                "estimated_tags": [
+                    {"tag": "FastAPI", "frequency": 15},
+                    {"tag": "Python", "frequency": 12},
+                    {"tag": "REST API", "frequency": 8},
+                ],
+            },
+            average_effectiveness=4.2,
+            synthesis_timestamp=datetime.now(UTC),
+            markdown_report="# Síntesis de Patrones\n\nAnálisis completo...",
+        )
+
+        generator = ScriptGenerator()
+        script = generator.generate(
+            synthesis=synthesis,
+            user_idea="Crear una API REST con FastAPI desde cero",
+            duration_minutes=10,
+            style_preference="educational",
+        )
+
+        # Verify structure
+        assert script.user_idea == "Crear una API REST con FastAPI desde cero"
+        assert isinstance(script.script_markdown, str)
+        assert len(script.script_markdown) > 100
+        assert script.word_count > 0
+        assert script.estimated_duration_minutes > 0
+
+        # Verify SEO components
+        assert isinstance(script.seo_title, str)
+        assert len(script.seo_title) > 10
+        assert isinstance(script.seo_description, str)
+        assert isinstance(script.seo_tags, list)
+        assert len(script.seo_tags) > 0
+
+        # Verify metadata
+        assert script.synthesis_used == "Python FastAPI Tutorial"
+        assert script.num_reference_videos == 5
+        assert script.estimated_quality_score > 0
+        assert script.estimated_quality_score <= 100
