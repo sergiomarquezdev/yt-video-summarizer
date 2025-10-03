@@ -8,6 +8,7 @@ from youtube_script_generator import (
     PatternSynthesizer,
     QueryOptimizer,
     ScriptGenerator,
+    VideoAnalysis,
     VideoTranscript,
     YouTubeSearcher,
     YouTubeVideo,
@@ -248,13 +249,69 @@ class TestPatternSynthesizer:
     def test_synthesizer_initialization(self):
         """Test PatternSynthesizer initialization."""
         synthesizer = PatternSynthesizer()
-        assert synthesizer.model_name is not None
+        assert synthesizer.model is not None
 
-    @pytest.mark.skip(reason="Not implemented yet")
     def test_pattern_synthesis(self):
         """Test synthesis of multiple analyses."""
-        # TODO: Implement once synthesizer is ready
-        pass
+        # Create mock video analyses with different view counts
+        # Video 2 should have highest score due to highest views
+        view_counts = [10000, 50000, 100000]  # Ascending for testing weighting
+        videos = [
+            YouTubeVideo(
+                video_id=f"vid{i}",
+                title=f"Python Tutorial {i}",
+                url=f"https://youtube.com/watch?v=vid{i}",
+                duration_seconds=900,  # All 15 min for consistent duration score
+                view_count=view_counts[i],
+                upload_date="20240101",
+                channel="Test Channel",
+            )
+            for i in range(3)
+        ]
+
+        analyses = [
+            VideoAnalysis(
+                video=video,
+                hook_start=0,
+                hook_end=15 + (i * 5),
+                hook_text=f"Hook example {i}",
+                hook_type="question",
+                hook_effectiveness="high",
+                intro_end=60,
+                sections=[{"title": "Intro", "start": "0:00", "end": "1:00"}],
+                conclusion_start=540,
+                ctas=[
+                    {"type": "like", "timestamp": "1:00", "text": "Like this video"},
+                    {"type": "subscribe", "timestamp": "5:00", "text": "Subscribe now"},
+                ],
+                technical_terms=["Python", "functions", "variables"],
+                common_phrases=["let's see", "for example"],
+                transition_phrases=["moving on"],
+                techniques=[{"name": "examples", "description": "Uses examples"}],
+                title_keywords=["Python", "Tutorial"],
+                estimated_tags=["Python", "Programming"],
+                raw_analysis="{}",
+            )
+            for i, video in enumerate(videos)
+        ]
+
+        synthesizer = PatternSynthesizer()
+        synthesis = synthesizer.synthesize(analyses, topic="Python Tutorials")
+
+        # Verify structure
+        assert synthesis.topic == "Python Tutorials"
+        assert synthesis.num_videos_analyzed == 3
+        assert isinstance(synthesis.top_hooks, list)
+        assert len(synthesis.top_hooks) > 0
+        assert isinstance(synthesis.optimal_structure, dict)
+        assert isinstance(synthesis.effective_ctas, list)
+        assert isinstance(synthesis.key_vocabulary, dict)
+        assert isinstance(synthesis.markdown_report, str)
+        assert len(synthesis.markdown_report) > 0
+
+        # Verify weighting (higher score videos should be more prominent)
+        # Video 2 has highest score (5.0), so its hook should be first
+        assert synthesis.top_hooks[0]["video_title"] == "Python Tutorial 2"
 
 
 class TestScriptGenerator:
