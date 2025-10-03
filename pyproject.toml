@@ -31,6 +31,9 @@ dependencies = [
     "numpy>=1.24.0",
     "soundfile>=0.12.0",
     "tqdm>=4.65.0",
+    # YouTube Script Generator dependencies
+    "google-generativeai>=0.3.0",  # Gemini API
+    "rich>=13.7.0",  # CLI progress bars and formatting
 ]
 
 [project.optional-dependencies]
@@ -56,11 +59,12 @@ build-backend = "hatchling.build"
 
 # Hatchling configuration - tell it where to find the package
 [tool.hatch.build.targets.wheel]
-packages = ["yt_transcriber"]
+packages = ["yt_transcriber", "youtube_script_generator"]
 
 [tool.hatch.build.targets.sdist]
 include = [
     "/yt_transcriber",
+    "/youtube_script_generator",
     "/test",
     "/README.md",
     "/LICENSE",

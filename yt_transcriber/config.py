@@ -46,6 +46,28 @@ class AppSettings(BaseSettings):
         description="Ruta personalizada a FFmpeg (opcional)",
     )
 
+    # YouTube Script Generator settings
+    GOOGLE_API_KEY: str = Field(
+        default="",
+        description="Google Gemini API key para script generation",
+    )
+    GEMINI_PRO_MODEL: str = Field(
+        default="gemini-2.0-flash-exp",
+        description="Modelo de Gemini a utilizar",
+    )
+    SCRIPT_OUTPUT_DIR: Path = Field(
+        default=Path("output_scripts/"),
+        description="Directorio para guiones generados",
+    )
+    ANALYSIS_OUTPUT_DIR: Path = Field(
+        default=Path("output_analysis/"),
+        description="Directorio para análisis y síntesis",
+    )
+    TEMP_BATCH_DIR: Path = Field(
+        default=Path("temp_batch/"),
+        description="Directorio temporal para batch processing",
+    )
+
 
 # Crear una instancia global de las configuraciones validadas
 try:
