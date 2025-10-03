@@ -68,6 +68,16 @@ class AppSettings(BaseSettings):
         description="Directorio temporal para batch processing",
     )
 
+    # Video Summarization settings (NEW)
+    SUMMARIZER_MODEL: str = Field(
+        default="gemini-1.5-flash",
+        description="Modelo de Gemini para summarization (rápido y económico)",
+    )
+    SUMMARY_OUTPUT_DIR: Path = Field(
+        default=Path("output_summaries/"),
+        description="Directorio para resúmenes generados",
+    )
+
 
 # Crear una instancia global de las configuraciones validadas
 try:

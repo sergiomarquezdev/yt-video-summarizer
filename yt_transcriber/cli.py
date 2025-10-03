@@ -79,10 +79,15 @@ def process_transcription(
     model,
     language: str | None = None,
     ffmpeg_location: str | None = None,
-) -> Path | None:
+) -> tuple[Path | None, Path | None]:
     """
-    Lógica principal para descargar, transcribir y guardar la transcripción.
+    Lógica principal para descargar, transcribir y guardar la transcripción y resumen.
+    
+    Returns:
+        Tuple of (transcript_path, summary_path) or (None, None) if failed
     """
+    from yt_transcriber.summarizer import generate_summary
+
     logger.info(f"Iniciando transcripción para URL: {youtube_url}")
     unique_job_id = datetime.now().strftime("%Y%m%d%H%M%S%f")
     job_temp_dir = config.settings.TEMP_DOWNLOAD_DIR / unique_job_id
@@ -111,30 +116,58 @@ def process_transcription(
         output_filename_base = (
             f"{normalized_title}_vid_{download_result.video_id}_job_{unique_job_id}"
         )
-        output_file_path = utils.save_transcription_to_file(
+        transcript_path = utils.save_transcription_to_file(
             transcription_text=transcription_result.text,
             output_filename_no_ext=output_filename_base,
             output_dir=config.settings.OUTPUT_TRANSCRIPTS_DIR,
             original_title=title,
         )
 
-        if not output_file_path:
+        if not transcript_path:
             raise OSError("No se pudo guardar el archivo de transcripción.")
 
-        logger.info(f"Transcripción guardada exitosamente en: {output_file_path}")
-        print(f"\nTranscripción guardada en: {output_file_path}")
-        return output_file_path
+        logger.info(f"✅ Transcripción guardada exitosamente en: {transcript_path}")
+        print(f"\n✅ Transcripción guardada en: {transcript_path}")
+
+        # 4. Generar resumen automáticamente
+        logger.info("Paso 4: Generando resumen con IA...")
+        try:
+            summary = generate_summary(
+                transcript=transcription_result.text,
+                video_title=title,
+                video_url=youtube_url,
+                video_id=download_result.video_id,
+            )
+
+            # Guardar resumen
+            config.settings.SUMMARY_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+            summary_filename = f"{output_filename_base}_summary.md"
+            summary_path = config.settings.SUMMARY_OUTPUT_DIR / summary_filename
+
+            with open(summary_path, "w", encoding="utf-8") as f:
+                f.write(summary.to_markdown())
+
+            logger.info(f"✅ Resumen guardado exitosamente en: {summary_path}")
+            print(f"✅ Resumen guardado en: {summary_path}")
+
+            return transcript_path, summary_path
+
+        except Exception as e:
+            logger.warning(f"No se pudo generar el resumen (continuando): {e}")
+            print(f"\n⚠️ Advertencia: No se pudo generar el resumen: {e}", file=sys.stderr)
+            # Return transcript path even if summary fails
+            return transcript_path, None
 
     except (OSError, DownloadError, TranscriptionError) as e:
         logger.error(f"Ha ocurrido un error en el proceso: {e}", exc_info=True)
         print(f"\nError: {e}", file=sys.stderr)
-        return None
+        return None, None
     except Exception as e:
         logger.critical(f"Ocurrió un error inesperado: {e}", exc_info=True)
         print(f"\nError inesperado: {e}", file=sys.stderr)
-        return None
+        return None, None
     finally:
-        # 4. Limpieza
+        # 5. Limpieza
         logger.info(f"Limpiando directorio temporal: {job_temp_dir}")
         utils.cleanup_temp_dir(job_temp_dir)
 
@@ -159,7 +192,7 @@ def command_transcribe(args):
     title = get_youtube_title(args.url)
     logger.info(f"Título extraído: {title}")
 
-    result_path = process_transcription(
+    transcript_path, summary_path = process_transcription(
         youtube_url=args.url,
         title=title,
         model=model,
@@ -167,8 +200,12 @@ def command_transcribe(args):
         ffmpeg_location=args.ffmpeg_location,
     )
 
-    if result_path:
+    if transcript_path:
         logger.info("Proceso completado exitosamente.")
+        if summary_path:
+            print("\n🎉 Archivos generados:")
+            print(f"  📄 Transcripción: {transcript_path}")
+            print(f"  📋 Resumen: {summary_path}")
         sys.exit(0)
     else:
         logger.error("El proceso de transcripción falló.")
@@ -350,7 +387,7 @@ def run_transcribe_command(
     url: str,
     language: str | None = None,
     ffmpeg_location: str | None = None,
-) -> str | None:
+) -> tuple[str | None, str | None]:
     """Wrapper function for transcription to be called from Gradio UI.
 
     Args:
@@ -359,14 +396,14 @@ def run_transcribe_command(
         ffmpeg_location: Optional custom FFmpeg path
 
     Returns:
-        Path to the saved transcript file, or None if failed
+        Tuple of (transcript_path, summary_path) or (None, None) if failed
     """
     setup_logging()
 
     # Validate YouTube URL
     if not (url.startswith("https://www.youtube.com/") or url.startswith("https://youtu.be/")):
         logger.error(f"Invalid YouTube URL: {url}")
-        return None
+        return None, None
 
     # Load Whisper model
     model = load_whisper_model()
@@ -379,7 +416,7 @@ def run_transcribe_command(
     # Handle "Auto-detectar" option from Gradio dropdown
     lang = None if language == "Auto-detectar" else language
 
-    result_path = process_transcription(
+    transcript_path, summary_path = process_transcription(
         youtube_url=url,
         title=title,
         model=model,
@@ -387,10 +424,10 @@ def run_transcribe_command(
         ffmpeg_location=ffmpeg_location,
     )
 
-    if result_path:
-        return str(result_path)
+    if transcript_path:
+        return str(transcript_path), str(summary_path) if summary_path else None
     else:
-        return None
+        return None, None
 
 
 def run_generate_script_command(
