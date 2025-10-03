@@ -10,10 +10,13 @@
 ## Background and Motivation
 
 ### Problem Statement
+
 Los creadores de contenido a menudo tienen ideas para videos pero les falta estructura o no saben cómo convertir una idea simple en un guion completo optimizado para YouTube. El proceso manual de crear guiones consume tiempo y requiere experiencia en escritura y SEO.
 
 ### Goals
+
 Crear un endpoint/comando independiente que:
+
 1. Reciba una idea textual simple (ej: "Video sobre cómo crear una aplicación Python con FastAPI con las mejores prácticas")
 2. Genere un guion completo de YouTube con estructura profesional
 3. Incluya optimización SEO (título, descripción, tags)
@@ -21,6 +24,7 @@ Crear un endpoint/comando independiente que:
 5. Sea completamente independiente del análisis de videos (desarrollo aislado)
 
 ### Success Criteria
+
 - ✅ Genera guion de 10-15 minutos en <30 segundos
 - ✅ Coste por generación <0.05€
 - ✅ Guion estructurado con intro, cuerpo, conclusión
@@ -35,16 +39,19 @@ Crear un endpoint/comando independiente que:
 ### Technical Challenges
 
 1. **Prompt Engineering**
+
    - Diseñar prompt que genere guiones consistentes y de calidad
    - Evitar respuestas genéricas o poco accionables
    - Mantener tono y estilo apropiado para YouTube
 
 2. **Diferenciación de Prompts**
+
    - **Script Generator**: Crear guion desde cero (creativo)
    - **Video Analyzer**: Analizar guion existente (analítico)
    - Prompts completamente diferentes, NO reutilizables
 
 3. **Structure Consistency**
+
    - Asegurar que todos los guiones tengan estructura similar
    - Validar que incluya todos los elementos requeridos
    - Longitud apropiada (no muy corto ni muy largo)
@@ -57,6 +64,7 @@ Crear un endpoint/comando independiente que:
 ### Architecture Decisions
 
 **Decision 1: Model Selection**
+
 - **Options**: Gemini 2.5 Pro vs Gemini 2.5 Flash
 - **Chosen**: Gemini 2.5 Pro
 - **Rationale**:
@@ -66,6 +74,7 @@ Crear un endpoint/comando independiente que:
   - Coste aceptable (~0.020€)
 
 **Decision 2: Module Separation**
+
 - **Options**: Integrar en `video_improver/` vs crear `script_generator/`
 - **Chosen**: Integrar en `video_improver/` pero archivo separado
 - **Rationale**:
@@ -75,6 +84,7 @@ Crear un endpoint/comando independiente que:
   - Fácil de mantener y testear separadamente
 
 **Decision 3: Output Format**
+
 - **Options**: Mismo formato que Video Analyzer vs formato específico
 - **Chosen**: Formato específico para guiones
 - **Rationale**:
@@ -88,16 +98,19 @@ Crear un endpoint/comando independiente que:
 ## High-level Task Breakdown
 
 ### Phase 0: Planning & Design (1 hour) ⏳
+
 **Responsible**: Planner
 **Dependencies**: None
 
 **Subtasks**:
+
 - [x] Definir estructura de guion objetivo
 - [x] Diseñar prompt de generación
 - [x] Estimar costes y tiempos
 - [x] Crear este plan de implementación
 
 **Success Criteria**:
+
 - Plan aprobado por usuario
 - Estructura de guion definida claramente
 - Prompt base documentado
@@ -105,10 +118,12 @@ Crear un endpoint/comando independiente que:
 ---
 
 ### Phase 1: Prompt Engineering & Testing (3 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Video Improvement Agent Phase 0 (setup de Gemini)
 
 **Subtasks**:
+
 - [ ] Crear `video_improver/script_generator.py`
 - [ ] Diseñar prompt estructurado para generación de guiones
 - [ ] Función `generate_script_from_idea(idea: str) -> GeneratedScript`
@@ -117,18 +132,21 @@ Crear un endpoint/comando independiente que:
 - [ ] Ajustar temperatura y parámetros de generación
 
 **Success Criteria**:
+
 - Genera guiones coherentes y bien estructurados
 - Incluye todos los elementos requeridos
 - Tono apropiado para YouTube
 - Longitud 800-1200 palabras (~10-15 min lectura)
 
 **Tests Required** (4 tests):
+
 1. `test_generate_script_success` - Genera guion válido
 2. `test_generate_script_structure` - Contiene secciones requeridas
 3. `test_generate_script_length` - 800-1200 palabras
 4. `test_generate_script_api_error` - Maneja errores API
 
 **Prompt Base** (v1):
+
 ```python
 SCRIPT_GENERATION_PROMPT = """
 Eres un guionista profesional de YouTube experto en crear contenido educativo y entretenido.
@@ -185,10 +203,12 @@ Proporciona el guion en formato Markdown con:
 ---
 
 ### Phase 2: SEO Optimization Integration (2 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 1
 
 **Subtasks**:
+
 - [ ] Extender `generate_script_from_idea()` para incluir SEO
 - [ ] Generar título optimizado (50-70 caracteres)
 - [ ] Generar descripción SEO (150-200 palabras)
@@ -197,12 +217,14 @@ Proporciona el guion en formato Markdown con:
 - [ ] Dataclass `GeneratedScript` con todos los campos
 
 **Success Criteria**:
+
 - Título SEO atractivo y optimizado
 - Descripción incluye palabras clave
 - Tags relevantes y específicos
 - Ideas de thumbnail visuales y claras
 
 **Tests Required** (5 tests):
+
 1. `test_seo_title_length` - 50-70 caracteres
 2. `test_seo_description_length` - 150-200 palabras
 3. `test_seo_tags_count` - 15-20 tags
@@ -210,6 +232,7 @@ Proporciona el guion en formato Markdown con:
 5. `test_thumbnail_suggestions` - 3+ sugerencias
 
 **Output Structure** (GeneratedScript):
+
 ```python
 @dataclass
 class GeneratedScript:
@@ -238,10 +261,12 @@ class GeneratedScript:
 ---
 
 ### Phase 3: CLI Implementation (2 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 2
 
 **Subtasks**:
+
 - [ ] Añadir comando `generate-script` a `video_improver/cli.py`
 - [ ] Argumentos: `--idea`, `--output`, `--format` (markdown/json)
 - [ ] Mostrar estimación de coste antes de generar
@@ -249,18 +274,21 @@ class GeneratedScript:
 - [ ] Guardar en `output_scripts/`
 
 **Success Criteria**:
+
 - CLI intuitiva y clara
 - Acepta ideas multipalabra sin comillas
 - Muestra preview del título generado
 - Guarda en formato solicitado
 
 **Tests Required** (4 tests):
+
 1. `test_cli_generate_script_help` - Muestra ayuda
 2. `test_cli_generate_script_missing_idea` - Error sin idea
 3. `test_cli_generate_script_success` - E2E test
 4. `test_cli_generate_script_formats` - Markdown y JSON
 
 **CLI Usage**:
+
 ```bash
 # Comando independiente
 uv run python -m video_improver.cli generate-script \
@@ -289,27 +317,32 @@ uv run python -m video_improver.cli generate-script \
 ---
 
 ### Phase 4: Report Formatting (1 hour) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 3
 
 **Subtasks**:
+
 - [ ] Crear template Markdown específico para guiones
 - [ ] Secciones: Guion, SEO, Producción, Metadata
 - [ ] Formato limpio y profesional
 - [ ] Exportación opcional a JSON para automatización
 
 **Success Criteria**:
+
 - Markdown bien formateado
 - Fácil de leer y copiar
 - Incluye todos los elementos
 - JSON válido si se solicita
 
 **Tests Required** (3 tests):
+
 1. `test_format_script_markdown` - Template correcto
 2. `test_format_script_json` - JSON válido
 3. `test_script_filename_sanitization` - Nombre de archivo limpio
 
 **Template Markdown**:
+
 ```markdown
 # 🎬 Guion Generado: {title}
 
@@ -328,12 +361,15 @@ uv run python -m video_improver.cli generate-script \
 ## 🎯 SEO & Optimización
 
 ### Título
+
 {seo_title}
 
 ### Descripción
+
 {seo_description}
 
 ### Tags
+
 {seo_tags}
 
 ---
@@ -341,15 +377,18 @@ uv run python -m video_improver.cli generate-script \
 ## 🎨 Notas de Producción
 
 ### Sugerencias de Thumbnail
+
 1. {thumbnail_1}
 2. {thumbnail_2}
 3. {thumbnail_3}
 
 ### Momentos para B-roll
+
 - [{timestamp}] {description}
-...
+  ...
 
 ### Preguntas de Engagement
+
 - {question_1}
 - {question_2}
 
@@ -365,10 +404,12 @@ uv run python -m video_improver.cli generate-script \
 ---
 
 ### Phase 5: Testing & Validation (2 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 4
 
 **Subtasks**:
+
 - [ ] Crear `test/test_script_generator.py`
 - [ ] Tests unitarios para cada función
 - [ ] Tests de integración E2E
@@ -377,12 +418,14 @@ uv run python -m video_improver.cli generate-script \
 - [ ] Actualizar coverage
 
 **Success Criteria**:
+
 - Todos los tests pasan
 - Coverage >70% en módulo script_generator
 - Scripts generados son de calidad consistente
 - No errores de formato o estructura
 
 **Tests Required** (10 tests totales):
+
 1. Unit tests: 7 (ya mencionados en fases anteriores)
 2. Integration tests:
    - `test_e2e_script_generation_simple_idea`
@@ -394,15 +437,18 @@ uv run python -m video_improver.cli generate-script \
 ## Project Status Board
 
 ### ✅ Completed Tasks
+
 - [x] Análisis de requisitos
 - [x] Diseño de arquitectura
 - [x] Estimación de costes
 - [x] Plan de implementación
 
 ### 🔄 In Progress
+
 - [ ] Ninguna (esperando aprobación)
 
 ### 📋 To Do (Prioridad)
+
 1. **BLOCKED**: Esperando completar Video Improvement Agent Phase 0 (setup de Gemini)
 2. **HIGH**: Phase 1 - Prompt Engineering
 3. **MEDIUM**: Phase 2 - SEO Integration
@@ -411,6 +457,7 @@ uv run python -m video_improver.cli generate-script \
 6. **LOW**: Phase 5 - Testing
 
 ### ⏸️ Blocked
+
 - **Phase 1-5**: Requiere `google-generativeai` instalado (Video Improvement Agent Phase 0)
 
 ---
@@ -418,16 +465,19 @@ uv run python -m video_improver.cli generate-script \
 ## Executor's Feedback or Assistance Requests
 
 ### Questions for Planner
-*Ninguna aún - esperando aprobación del plan.*
+
+_Ninguna aún - esperando aprobación del plan._
 
 ### Blockers Encountered
-*Ninguno aún - no iniciado.*
+
+_Ninguno aún - no iniciado._
 
 ---
 
 ## Technical Specifications
 
 ### Dependencies (Same as Video Improvement Agent)
+
 ```toml
 [project.dependencies]
 google-generativeai = "^0.3.0"
@@ -435,6 +485,7 @@ rich = "^13.7.0"
 ```
 
 ### File Structure (Integrado en video_improver/)
+
 ```
 video_improver/
 ├── __init__.py
@@ -451,13 +502,14 @@ test/
 ```
 
 ### Cost Breakdown (por guion)
-| Component | Tokens | Cost per 1M | Total |
-|-----------|--------|-------------|-------|
-| Input (idea + prompt) | ~500 | $1.25 | ~$0.0006 |
-| Output (guion completo) | ~3000 | $5.00 | ~$0.0150 |
-| **TOTAL** | | | **~$0.0156** |
 
-*Nota: Más barato que análisis de video porque no hay análisis visual.*
+| Component               | Tokens | Cost per 1M | Total        |
+| ----------------------- | ------ | ----------- | ------------ |
+| Input (idea + prompt)   | ~500   | $1.25       | ~$0.0006     |
+| Output (guion completo) | ~3000  | $5.00       | ~$0.0150     |
+| **TOTAL**               |        |             | **~$0.0156** |
+
+_Nota: Más barato que análisis de video porque no hay análisis visual._
 
 ---
 
@@ -465,18 +517,19 @@ test/
 
 ### Key Differences
 
-| Aspecto | Video Improver | Script Generator |
-|---------|----------------|------------------|
-| **Input** | Video file (mp4/mkv) | Text idea (string) |
-| **Transcription** | Sí (Whisper) | No |
-| **Visual Analysis** | Sí (Gemini Flash) | No |
-| **Script Analysis** | Analítico (mejoras) | Creativo (generación) |
-| **Output** | Mejoras de video existente | Guion nuevo desde cero |
-| **Prompt** | Analítico y crítico | Creativo y generativo |
-| **Cost** | ~0.025€ | ~0.016€ |
-| **Time** | ~40 segundos | ~15 segundos |
+| Aspecto             | Video Improver             | Script Generator       |
+| ------------------- | -------------------------- | ---------------------- |
+| **Input**           | Video file (mp4/mkv)       | Text idea (string)     |
+| **Transcription**   | Sí (Whisper)               | No                     |
+| **Visual Analysis** | Sí (Gemini Flash)          | No                     |
+| **Script Analysis** | Analítico (mejoras)        | Creativo (generación)  |
+| **Output**          | Mejoras de video existente | Guion nuevo desde cero |
+| **Prompt**          | Analítico y crítico        | Creativo y generativo  |
+| **Cost**            | ~0.025€                    | ~0.016€                |
+| **Time**            | ~40 segundos               | ~15 segundos           |
 
 ### Shared Components
+
 - ✅ Configuración de Gemini (`config.py`)
 - ✅ Cliente de Gemini Pro
 - ✅ Generación de reportes Markdown (template diferente)
@@ -487,16 +540,19 @@ test/
 ## Risk Assessment
 
 ### High Risk
+
 - **Calidad inconsistente**: Scripts pueden variar mucho
-  - *Mitigation*: Iterar mucho en prompt engineering, validar con ejemplos
+  - _Mitigation_: Iterar mucho en prompt engineering, validar con ejemplos
 
 ### Medium Risk
+
 - **Ideas vagas**: Usuario da idea muy general
-  - *Mitigation*: Prompt pide clarificación, ejemplos en documentación
+  - _Mitigation_: Prompt pide clarificación, ejemplos en documentación
 
 ### Low Risk
+
 - **API Limits**: Mismo riesgo que Video Improver
-  - *Mitigation*: Ya manejado en configuración compartida
+  - _Mitigation_: Ya manejado en configuración compartida
 
 ---
 

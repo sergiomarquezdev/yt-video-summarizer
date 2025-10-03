@@ -20,6 +20,7 @@ class YouTubeVideo:
     upload_date: str  # YYYYMMDD format
     channel: str
     like_count: int | None = None
+    duration_preference: int | None = None  # Preferred duration for quality scoring
 
     @property
     def duration_minutes(self) -> float:
@@ -33,7 +34,7 @@ class YouTubeVideo:
 
         Factores:
         - View count (40%): Más views = más exitoso
-        - Duration proximity to 15 min (20%): Cerca de 15 min es óptimo
+        - Duration proximity to target (20%): Cerca del target es óptimo
         - Upload recency (20%): Más reciente = técnicas actuales
         - Completeness (20%): Tiene todos los datos
         """
@@ -44,12 +45,14 @@ class YouTubeVideo:
         view_score = min(self.view_count / 100_000, 1.0)
         score += view_score * 0.4
 
-        # Duration proximity to 15 min (peso 20%)
-        # Óptimo: 12-18 min
-        duration_diff = abs(self.duration_minutes - 15)
-        if duration_diff <= 3:  # 12-18 min
+        # Duration proximity to target (peso 20%)
+        # Si hay preferencia, usarla; si no, asumir 15 min como óptimo
+        target_duration = self.duration_preference or 15
+        duration_diff = abs(self.duration_minutes - target_duration)
+
+        if duration_diff <= 3:  # Within 3 minutes
             duration_score = 1.0
-        elif duration_diff <= 6:  # 9-21 min
+        elif duration_diff <= 6:  # Within 6 minutes
             duration_score = 0.7
         else:
             duration_score = 0.4

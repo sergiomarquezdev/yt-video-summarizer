@@ -11,17 +11,22 @@
 ## Background and Motivation
 
 ### Problem Statement
+
 Los creadores de contenido necesitan crear guiones de alta calidad para YouTube, pero:
+
 - No saben qué estructura funciona mejor en su nicho
 - No conocen los hooks más efectivos
 - No tienen referencias actuales de videos exitosos
 - Crear guiones desde cero consume mucho tiempo
 
 ### The Insight
+
 En lugar de usar un RAG estático con patrones antiguos, **analizar dinámicamente los videos MÁS EXITOSOS del tema exacto** que el usuario quiere crear, y usar esos patrones para generar un guión optimizado.
 
 ### Goals
+
 Crear un sistema que:
+
 1. Reciba una idea de video del usuario
 2. Encuentre los 15 videos más exitosos sobre ese tema en YouTube
 3. Transcriba y analice todos esos videos
@@ -30,6 +35,7 @@ Crear un sistema que:
 6. Genere un guión optimizado usando esos patrones reales
 
 ### Success Criteria
+
 - ✅ Genera guiones de calidad 90-95/100
 - ✅ Proceso completo en <15 minutos
 - ✅ Coste <0.20€ por guión
@@ -44,37 +50,45 @@ Crear un sistema que:
 ### Technical Challenges
 
 #### 1. **YouTube Search Sin API Limits**
+
 **Desafío**: YouTube Data API tiene límite de 100 búsquedas/día
 **Solución**: Usar yt-dlp con `--flat-playlist` para scraping inteligente
 **Ventajas**:
+
 - Sin límites de cuota
 - Más metadata (views, likes, duración)
 - Ya instalado como dependencia
 - Gratis completamente
 
 #### 2. **Query Optimization**
+
 **Desafío**: User input "crear proyecto con FastAPI en Python" tiene palabras irrelevantes
 **Solución**: Gemini extrae keywords optimizadas: "FastAPI Python proyecto tutorial REST API"
 **Coste**: ~0.002€ por optimización
 **Beneficio**: Resultados más relevantes (+20% calidad estimada)
 
 #### 3. **Batch Transcription Performance**
+
 **Desafío**: Transcribir 15 videos de 15 min cada uno puede tardar mucho
 **Solución**:
+
 - Usar CUDA para Whisper (18 seg/video vs 3 min CPU)
 - Procesamiento paralelo con asyncio (opcional Phase 2)
-**Tiempo estimado**: 5-7 minutos con CUDA secuencial
+  **Tiempo estimado**: 5-7 minutos con CUDA secuencial
 
 #### 4. **Synthesis Without Information Loss**
+
 **Desafío**: Sintetizar 15 análisis sin perder detalles importantes
 **Solución**: Prompt estructurado que categoriza información
 **Categorías**: Hooks, Estructura, CTAs, Vocabulario, Técnicas, SEO
 **Validación**: Verificar que síntesis mantiene top patterns de cada categoría
 
 #### 5. **Weighting by Video Quality**
+
 **Desafío**: No todos los videos tienen la misma calidad
 **Solución**: Usar metadata de yt-dlp para ponderar
 **Métricas**:
+
 - View count (peso 40%)
 - Video duration (peso 20% - más cercano a target mejor)
 - Upload recency (peso 20% - más reciente mejor)
@@ -85,10 +99,12 @@ Crear un sistema que:
 ## High-level Task Breakdown
 
 ### Phase 0: Setup & Configuration (1 hour) ⏳
+
 **Responsible**: Executor
 **Dependencies**: None
 
 **Subtasks**:
+
 - [ ] Instalar `google-generativeai` dependency
 - [ ] Configurar `GOOGLE_API_KEY` en `.env` y `config.py`
 - [ ] Actualizar `pyproject.toml` con nueva dependencia
@@ -97,22 +113,26 @@ Crear un sistema que:
 - [ ] Documentar setup en README
 
 **Success Criteria**:
+
 - `uv sync` instala google-generativeai sin errores
 - yt-dlp puede buscar videos sin descargar
 - Gemini API key válida y funcional
 - Estructura de carpetas creada
 
 **Tests Required**:
+
 - `test_setup_gemini_api.py`: Verificar API key válida
 - `test_ytdlp_search.py`: Verificar búsqueda sin download
 
 ---
 
 ### Phase 1: Query Optimizer (2 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 0
 
 **Subtasks**:
+
 - [ ] Crear `youtube_script_generator/query_optimizer.py`
 - [ ] Función `optimize_search_query(user_input: str) -> str`
 - [ ] Prompt estructurado para extracción de keywords
@@ -121,18 +141,21 @@ Crear un sistema que:
 - [ ] Validación: keywords no vacías
 
 **Success Criteria**:
+
 - Extrae keywords relevantes eliminando stopwords
 - Añade sinónimos útiles (tutorial, guide, proyecto)
 - Falla gracefully si Gemini no disponible
 - Tiempo <3 segundos por optimización
 
 **Tests Required** (4 tests):
+
 1. `test_optimize_query_success` - Query válida optimizada
 2. `test_optimize_query_removes_stopwords` - Elimina "con", "en", "de"
 3. `test_optimize_query_adds_synonyms` - Añade términos relevantes
 4. `test_optimize_query_fallback` - Usa original si falla
 
 **Input/Output Examples**:
+
 ```python
 Input:  "crear proyecto con FastAPI en Python"
 Output: "FastAPI Python proyecto tutorial REST API"
@@ -147,10 +170,12 @@ Output: "Node.js testing best practices unit integration"
 ---
 
 ### Phase 2: YouTube Searcher (3 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 1
 
 **Subtasks**:
+
 - [ ] Crear `youtube_script_generator/youtube_searcher.py`
 - [ ] Dataclass `YouTubeVideo` (id, title, url, duration, views, upload_date)
 - [ ] Función `search_youtube_videos(query, max_results, filters)`
@@ -161,12 +186,14 @@ Output: "Node.js testing best practices unit integration"
 - [ ] Manejo de timeouts y errores
 
 **Success Criteria**:
+
 - Busca y retorna top 15 videos en <30 segundos
 - Filtra por duración correctamente
 - Extrae metadata completa (views, duration, date)
 - Maneja errores de red/timeout gracefully
 
 **Tests Required** (6 tests):
+
 1. `test_search_youtube_success` - Búsqueda válida retorna videos
 2. `test_search_youtube_duration_filter` - Filtra por duración min/max
 3. `test_search_youtube_max_results` - Respeta límite de resultados
@@ -175,6 +202,7 @@ Output: "Node.js testing best practices unit integration"
 6. `test_youtube_video_dataclass` - Validación de tipos
 
 **Output Structure** (YouTubeVideo):
+
 ```python
 @dataclass
 class YouTubeVideo:
@@ -203,10 +231,12 @@ class YouTubeVideo:
 ---
 
 ### Phase 3: Batch Processor (4 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 2
 
 **Subtasks**:
+
 - [ ] Crear `youtube_script_generator/batch_processor.py`
 - [ ] Función `download_audio_batch(videos: List[YouTubeVideo])`
 - [ ] Función `transcribe_batch(audio_files: List[Path])`
@@ -217,6 +247,7 @@ class YouTubeVideo:
 - [ ] Manejo de errores por video (continuar si uno falla)
 
 **Success Criteria**:
+
 - Descarga 15 audios en ~2-3 minutos
 - Transcribe 15 videos en ~5-7 minutos (CUDA)
 - Progress visible en terminal
@@ -224,6 +255,7 @@ class YouTubeVideo:
 - Limpia archivos temporales al finalizar
 
 **Tests Required** (5 tests):
+
 1. `test_download_audio_batch_success` - Descarga múltiples videos
 2. `test_transcribe_batch_success` - Transcribe múltiples audios
 3. `test_batch_partial_failure` - Continúa si un video falla
@@ -231,6 +263,7 @@ class YouTubeVideo:
 5. `test_batch_progress_tracking` - Progress bar funciona
 
 **Data Structure**:
+
 ```python
 @dataclass
 class VideoTranscript:
@@ -244,10 +277,12 @@ class VideoTranscript:
 ---
 
 ### Phase 4: Pattern Analyzer (4 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 3
 
 **Subtasks**:
+
 - [ ] Crear `youtube_script_generator/pattern_analyzer.py`
 - [ ] Función `analyze_video_patterns(transcript: VideoTranscript, video: YouTubeVideo)`
 - [ ] Prompt estructurado para análisis con Gemini Pro
@@ -262,12 +297,14 @@ class VideoTranscript:
 - [ ] Cálculo de effectiveness score usando metadata
 
 **Success Criteria**:
+
 - Analiza cada video en <5 segundos
 - Extrae todos los patrones requeridos
 - Effectiveness score refleja calidad del video
 - Output estructurado y parseado correctamente
 
 **Tests Required** (7 tests):
+
 1. `test_analyze_video_patterns_success` - Análisis completo
 2. `test_analyze_hook_extraction` - Extrae hook correctamente
 3. `test_analyze_cta_extraction` - Extrae CTAs con posición
@@ -277,6 +314,7 @@ class VideoTranscript:
 7. `test_video_analysis_dataclass` - Validación de tipos
 
 **Analysis Prompt Template**:
+
 ```python
 PATTERN_ANALYSIS_PROMPT = """
 Analiza esta transcripción de video de YouTube y extrae patrones estructurales.
@@ -336,6 +374,7 @@ Responde SOLO con el JSON, sin explicación adicional.
 ```
 
 **Output Structure** (VideoAnalysis):
+
 ```python
 @dataclass
 class VideoAnalysis:
@@ -376,10 +415,12 @@ class VideoAnalysis:
 ---
 
 ### Phase 5: Synthesis Engine (4 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 4
 
 **Subtasks**:
+
 - [ ] Crear `youtube_script_generator/synthesizer.py`
 - [ ] Función `synthesize_patterns(analyses: List[VideoAnalysis]) -> PatternSynthesis`
 - [ ] Prompt estructurado para síntesis con Gemini Pro
@@ -395,6 +436,7 @@ class VideoAnalysis:
 - [ ] Preservación de información crítica
 
 **Success Criteria**:
+
 - Síntesis completa en <30 segundos
 - Preserva top patterns de cada categoría
 - Pondera correctamente por quality score
@@ -402,6 +444,7 @@ class VideoAnalysis:
 - No pierde información crítica
 
 **Tests Required** (6 tests):
+
 1. `test_synthesize_patterns_success` - Síntesis completa
 2. `test_synthesize_weighting` - Pondera por effectiveness
 3. `test_synthesize_top_hooks` - Extrae top 10 hooks
@@ -410,6 +453,7 @@ class VideoAnalysis:
 6. `test_pattern_synthesis_dataclass` - Validación de tipos
 
 **Synthesis Prompt Template**:
+
 ```python
 SYNTHESIS_PROMPT = """
 Tienes {num_videos} análisis de videos exitosos de YouTube sobre "{topic}".
@@ -463,6 +507,7 @@ Formato de output: JSON estructurado.
 ```
 
 **Output Structure** (PatternSynthesis):
+
 ```python
 @dataclass
 class PatternSynthesis:
@@ -488,10 +533,12 @@ class PatternSynthesis:
 ---
 
 ### Phase 6: Script Generator (3 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 5
 
 **Subtasks**:
+
 - [ ] Crear `youtube_script_generator/script_generator.py`
 - [ ] Función `generate_script(user_idea: str, synthesis: PatternSynthesis) -> GeneratedScript`
 - [ ] Prompt enriquecido con síntesis completa
@@ -501,6 +548,7 @@ class PatternSynthesis:
 - [ ] Timestamps estimados en guión
 
 **Success Criteria**:
+
 - Genera guión en <20 segundos
 - Aplica patrones de synthesis
 - Calidad esperada 90-95/100
@@ -508,6 +556,7 @@ class PatternSynthesis:
 - Markdown bien formateado
 
 **Tests Required** (5 tests):
+
 1. `test_generate_script_success` - Generación completa
 2. `test_generate_script_uses_synthesis` - Aplica patrones
 3. `test_generate_script_seo` - Incluye título/descripción/tags
@@ -515,6 +564,7 @@ class PatternSynthesis:
 5. `test_generated_script_dataclass` - Validación de tipos
 
 **Generation Prompt Template**:
+
 ```python
 SCRIPT_GENERATION_PROMPT = """
 Eres un guionista experto de YouTube. Vas a crear un guion profesional sobre:
@@ -553,6 +603,7 @@ Genera el guion completo en formato Markdown.
 ```
 
 **Output Structure** (GeneratedScript):
+
 ```python
 @dataclass
 class GeneratedScript:
@@ -581,10 +632,12 @@ class GeneratedScript:
 ---
 
 ### Phase 7: CLI Integration (2 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 6
 
 **Subtasks**:
+
 - [ ] Extender `yt_transcriber/cli.py` con comando `generate-from-search`
 - [ ] Argumentos: `--idea`, `--max-videos`, `--output`, `--no-optimize`
 - [ ] Progress tracking con `rich`
@@ -593,6 +646,7 @@ class GeneratedScript:
 - [ ] Error handling y mensajes claros
 
 **Success Criteria**:
+
 - CLI intuitiva y fácil de usar
 - Progress visible para cada fase
 - Estadísticas útiles (tiempo, coste, calidad)
@@ -600,12 +654,14 @@ class GeneratedScript:
 - Manejo de errores claro
 
 **Tests Required** (4 tests):
+
 1. `test_cli_generate_help` - Muestra ayuda
 2. `test_cli_generate_missing_idea` - Error sin idea
 3. `test_cli_generate_success` - E2E flow completo
 4. `test_cli_generate_progress` - Progress bars funcionan
 
 **CLI Usage Example**:
+
 ```bash
 uv run python -m yt_transcriber.cli generate-from-search \
   --idea "crear proyecto con FastAPI en Python" \
@@ -614,6 +670,7 @@ uv run python -m yt_transcriber.cli generate-from-search \
 ```
 
 **Expected Terminal Output**:
+
 ```
 🎬 YouTube-Powered Script Generator
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -670,10 +727,12 @@ uv run python -m yt_transcriber.cli generate-from-search \
 ---
 
 ### Phase 8: Testing & Documentation (3 hours) ⏳
+
 **Responsible**: Executor
 **Dependencies**: Phase 7
 
 **Subtasks**:
+
 - [ ] Tests unitarios para cada módulo (ya definidos en fases)
 - [ ] Test de integración E2E completo
 - [ ] Validar con idea real y verificar output
@@ -683,6 +742,7 @@ uv run python -m yt_transcriber.cli generate-from-search \
 - [ ] Coverage report (objetivo >70%)
 
 **Success Criteria**:
+
 - Todos los tests pasan
 - Coverage >70%
 - README actualizado con ejemplos
@@ -690,6 +750,7 @@ uv run python -m yt_transcriber.cli generate-from-search \
 - Guía de troubleshooting
 
 **Tests Required**:
+
 - Unit tests: ~35 tests (ya definidos en fases anteriores)
 - Integration tests: 3 tests
   - `test_e2e_full_workflow` - Workflow completo con idea real
@@ -701,15 +762,18 @@ uv run python -m yt_transcriber.cli generate-from-search \
 ## Project Status Board
 
 ### ✅ Completed Tasks
+
 - [x] Análisis de opciones: RAG vs Síntesis Contextual
 - [x] Decisión: yt-dlp vs YouTube API
 - [x] Análisis de costes y tiempos
 - [x] Plan de implementación detallado (8 fases)
 
 ### 🔄 In Progress
+
 - [ ] Ninguna (esperando aprobación para empezar)
 
 ### 📋 To Do (Prioridad)
+
 1. **HIGH**: Phase 0 - Setup & Configuration
 2. **HIGH**: Phase 1 - Query Optimizer
 3. **HIGH**: Phase 2 - YouTube Searcher
@@ -721,6 +785,7 @@ uv run python -m yt_transcriber.cli generate-from-search \
 9. **LOW**: Phase 8 - Testing & Documentation
 
 ### ⏸️ Blocked
+
 - Ninguna
 
 ---
@@ -728,19 +793,23 @@ uv run python -m yt_transcriber.cli generate-from-search \
 ## Executor's Feedback or Assistance Requests
 
 ### Questions for Planner
-*Ninguna aún - fase de planificación completada.*
+
+_Ninguna aún - fase de planificación completada._
 
 ### Blockers Encountered
-*Ninguno aún.*
+
+_Ninguno aún._
 
 ### Lessons Learned During Execution
-*Se actualizará durante la implementación.*
+
+_Se actualizará durante la implementación._
 
 ---
 
 ## Technical Specifications
 
 ### Dependencies to Add
+
 ```toml
 [project.dependencies]
 google-generativeai = "^0.3.0"  # Gemini API
@@ -748,6 +817,7 @@ rich = "^13.7.0"  # CLI progress bars y formatting
 ```
 
 ### Environment Variables
+
 ```bash
 # .env
 GOOGLE_API_KEY=your_api_key_here
@@ -755,6 +825,7 @@ GEMINI_PRO_MODEL=gemini-2.5-pro
 ```
 
 ### File Structure
+
 ```
 yt-video-summarizer/
 ├── yt_transcriber/          # EXISTENTE - MANTENER Y EXTENDER
@@ -793,36 +864,38 @@ test/
 
 ### Cost Breakdown (15-minute videos, 15 videos analyzed)
 
-| Component | Tokens/Calls | Cost per Unit | Total |
-|-----------|--------------|---------------|-------|
-| **Query Optimization** | 200 in + 50 out | $1.25/M + $5/M | ~$0.0005 |
-| **YouTube Search (yt-dlp)** | - | Gratis | $0 |
-| **Download 15 audios** | - | Gratis | $0 |
-| **Transcription (Whisper CUDA)** | - | Gratis (local) | $0 |
-| **Pattern Analysis (15 videos)** | 15 × (4.2K in + 1.5K out) | $1.25/M + $5/M | ~$0.120 |
-| **Synthesis** | 25K in + 3K out | $1.25/M + $5/M | ~$0.046 |
-| **Script Generation** | 6K in + 3K out | $1.25/M + $5/M | ~$0.023 |
-| **TOTAL** | | | **~$0.190** |
+| Component                        | Tokens/Calls              | Cost per Unit  | Total       |
+| -------------------------------- | ------------------------- | -------------- | ----------- |
+| **Query Optimization**           | 200 in + 50 out           | $1.25/M + $5/M | ~$0.0005    |
+| **YouTube Search (yt-dlp)**      | -                         | Gratis         | $0          |
+| **Download 15 audios**           | -                         | Gratis         | $0          |
+| **Transcription (Whisper CUDA)** | -                         | Gratis (local) | $0          |
+| **Pattern Analysis (15 videos)** | 15 × (4.2K in + 1.5K out) | $1.25/M + $5/M | ~$0.120     |
+| **Synthesis**                    | 25K in + 3K out           | $1.25/M + $5/M | ~$0.046     |
+| **Script Generation**            | 6K in + 3K out            | $1.25/M + $5/M | ~$0.023     |
+| **TOTAL**                        |                           |                | **~$0.190** |
 
 **Notas:**
+
 - Síntesis usa mucho input (15 análisis completos)
 - Coste podría reducirse si resumimos análisis antes de synthesis
 - Con tier gratuito Gemini: primeros ~50 guiones gratis/día
 
 ### Time Breakdown (Sequential execution)
 
-| Phase | Time | Notas |
-|-------|------|-------|
-| Query optimization | 2-3 seg | Gemini API call |
-| YouTube search | 10-15 seg | yt-dlp búsqueda |
-| Download 15 audios | 2-3 min | Depende de conexión |
-| Transcription (CUDA) | 5-7 min | RTX 3060: ~23 seg/video |
-| Pattern analysis | 1.5-2 min | 15 × ~6 seg (Gemini) |
-| Synthesis | 20-30 seg | Gemini con input largo |
-| Script generation | 15-20 seg | Gemini |
-| **TOTAL** | **10-14 min** | Tiempo real de usuario |
+| Phase                | Time          | Notas                   |
+| -------------------- | ------------- | ----------------------- |
+| Query optimization   | 2-3 seg       | Gemini API call         |
+| YouTube search       | 10-15 seg     | yt-dlp búsqueda         |
+| Download 15 audios   | 2-3 min       | Depende de conexión     |
+| Transcription (CUDA) | 5-7 min       | RTX 3060: ~23 seg/video |
+| Pattern analysis     | 1.5-2 min     | 15 × ~6 seg (Gemini)    |
+| Synthesis            | 20-30 seg     | Gemini con input largo  |
+| Script generation    | 15-20 seg     | Gemini                  |
+| **TOTAL**            | **10-14 min** | Tiempo real de usuario  |
 
 **Optimizaciones posibles Phase 2**:
+
 - Transcripción paralela: 5-7 min → 2-3 min (asyncio)
 - Análisis paralelo: 1.5-2 min → 30-40 seg (batch API)
 
@@ -831,31 +904,39 @@ test/
 ## Risk Assessment
 
 ### High Risk
+
 **Yt-dlp bloqueado por YouTube**
+
 - **Probabilidad**: Baja (yt-dlp muy mantenido)
 - **Impacto**: Alto (feature no funciona)
 - **Mitigation**: Implementar fallback a YouTube Data API
 - **Señales de alerta**: Errores HTTP 429, 403 repetidos
 
 ### Medium Risk
+
 **Gemini API rate limits**
+
 - **Probabilidad**: Media (tier gratuito limitado)
 - **Impacto**: Medio (proceso más lento)
 - **Mitigation**: Implementar retry logic con exponential backoff
 - **Límites conocidos**: 60 requests/min en tier gratuito
 
 **Transcripción lenta sin CUDA**
+
 - **Probabilidad**: Baja (usuario tiene RTX 3060)
 - **Impacto**: Alto (10-14 min → 40-60 min)
 - **Mitigation**: Detectar CUDA, avisar si no disponible, sugerir menos videos
 
 ### Low Risk
+
 **Síntesis pierde información crítica**
+
 - **Probabilidad**: Baja (prompt estructurado)
 - **Impacto**: Medio (calidad reducida)
 - **Mitigation**: Validar synthesis manualmente en testing, ajustar prompt
 
 **Videos sin transcripción disponible**
+
 - **Probabilidad**: Baja (la mayoría tienen audio)
 - **Impacto**: Bajo (se omite ese video)
 - **Mitigation**: Manejar error, continuar con otros videos
@@ -865,6 +946,7 @@ test/
 ## Quality Metrics
 
 ### Code Quality Targets
+
 - **Test Coverage**: >70%
 - **Type Hints**: 100% en funciones públicas
 - **Docstrings**: 100% en módulos/funciones públicas
@@ -872,12 +954,14 @@ test/
 - **Type Checking**: 0 errores Mypy
 
 ### Output Quality Targets
+
 - **Script Quality**: 90-95/100 (evaluación manual)
 - **Synthesis Completeness**: Preserva top 10 de cada categoría
 - **SEO Optimization**: Título/descripción/tags presentes
 - **Structure Adherence**: Sigue estructura óptima identificada
 
 ### Performance Targets
+
 - **Total Time**: <15 minutos por guión
 - **Cost**: <$0.20 por guión
 - **Success Rate**: >95% (manejo robusto de errores)
@@ -892,6 +976,7 @@ test/
 4. **Executor implementa Phase 0** y reporta progreso
 
 **IMPORTANTE**: Después de Phase 3 (Batch Processor), hacer **CHECKPOINT**:
+
 - Ejecutar con 3 videos de prueba
 - Verificar transcripciones correctas
 - Validar tiempos y costes reales
