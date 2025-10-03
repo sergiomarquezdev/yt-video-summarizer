@@ -7,12 +7,11 @@ generating executive summaries with key points, timestamps, and action items.
 import logging
 import re
 from datetime import datetime
-from pathlib import Path
 
 import google.generativeai as genai
 
-from yt_transcriber.config import settings
 from youtube_script_generator.models import TimestampedSection, VideoSummary
+from yt_transcriber.config import settings
 
 
 logger = logging.getLogger(__name__)
@@ -76,7 +75,7 @@ def generate_summary(
 
     except Exception as e:
         logger.error(f"Gemini API error: {e}", exc_info=True)
-        raise SummarizationError(f"Failed to generate summary: {e}")
+        raise SummarizationError(f"Failed to generate summary: {e}") from e
 
     # 5. Parse markdown response
     try:
@@ -94,7 +93,7 @@ def generate_summary(
 
     except Exception as e:
         logger.error(f"Failed to parse summary: {e}", exc_info=True)
-        raise SummarizationError(f"Failed to parse Gemini response: {e}")
+        raise SummarizationError(f"Failed to parse Gemini response: {e}") from e
 
 
 def _detect_language(transcript: str) -> str:
@@ -191,7 +190,9 @@ def _parse_summary_response(
 ) -> VideoSummary:
     """Parse Gemini markdown response into VideoSummary object."""
     # Extract sections using regex
-    exec_summary = _extract_section(summary_text, r"## 🎯 Resumen Ejecutivo|## 🎯 Executive Summary")
+    exec_summary = _extract_section(
+        summary_text, r"## 🎯 Resumen Ejecutivo|## 🎯 Executive Summary"
+    )
     key_points = _extract_list_items(summary_text, r"## 🔑 Puntos Clave|## 🔑 Key Points")
     timestamps = _extract_timestamps(summary_text)
     conclusion = _extract_section(summary_text, r"## 💡 Conclusión|## 💡 Conclusion")
