@@ -1,7 +1,4 @@
 # Configuraciones para la aplicación de transcripción de YouTube
-# mypy: disable-error-code="call-overload,call-arg"
-# Note: Pydantic Settings causes mypy false positives with Field() env parameter
-# and BaseSettings() initialization. These are safe to ignore.
 
 import sys
 from pathlib import Path
@@ -9,7 +6,7 @@ from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 # Cargar variables de entorno desde un archivo .env si existe
@@ -22,22 +19,32 @@ class AppSettings(BaseSettings):
     Lee variables de entorno y aplica valores por defecto.
     """
 
-    WHISPER_MODEL_NAME: Literal["tiny", "base", "small", "medium", "large"] = Field(
-        "base", env="WHISPER_MODEL_NAME"
-    )
-    WHISPER_DEVICE: Literal["cpu", "cuda"] = Field("cpu", env="WHISPER_DEVICE")
-    TEMP_DOWNLOAD_DIR: Path = Field("temp_files/", env="TEMP_DOWNLOAD_DIR")
-    OUTPUT_TRANSCRIPTS_DIR: Path = Field("output_transcripts/", env="OUTPUT_TRANSCRIPTS_DIR")
-    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
-        "INFO", env="LOG_LEVEL"
-    )
-    FFMPEG_LOCATION: str = Field("", env="FFMPEG_LOCATION")
+    model_config = SettingsConfigDict(case_sensitive=False)
 
-    class Config:
-        # Pydantic v1 style for case-insensitivity
-        case_sensitive = False
-        # For Pydantic v2, you would use:
-        # validation_options = {"case_sensitive": False}
+    WHISPER_MODEL_NAME: Literal["tiny", "base", "small", "medium", "large"] = Field(
+        default="base",
+        description="Modelo de Whisper a utilizar",
+    )
+    WHISPER_DEVICE: Literal["cpu", "cuda"] = Field(
+        default="cpu",
+        description="Dispositivo para ejecutar Whisper (cpu o cuda)",
+    )
+    TEMP_DOWNLOAD_DIR: Path = Field(
+        default=Path("temp_files/"),
+        description="Directorio para archivos temporales",
+    )
+    OUTPUT_TRANSCRIPTS_DIR: Path = Field(
+        default=Path("output_transcripts/"),
+        description="Directorio para transcripciones generadas",
+    )
+    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
+        default="INFO",
+        description="Nivel de logging",
+    )
+    FFMPEG_LOCATION: str = Field(
+        default="",
+        description="Ruta personalizada a FFmpeg (opcional)",
+    )
 
 
 # Crear una instancia global de las configuraciones validadas

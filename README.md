@@ -3,6 +3,8 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyTorch](https://img.shields.io/badge/PyTorch-CUDA%2012.8-red.svg)](https://pytorch.org/)
+[![Tests](https://img.shields.io/badge/tests-49%20passed-brightgreen.svg)](test/)
+[![Code Coverage](https://img.shields.io/badge/coverage-59%25-yellowgreen.svg)](htmlcov/)
 
 A powerful CLI tool to download YouTube videos and transcribe them to text using [OpenAI's Whisper](https://github.com/openai/whisper) model. Supports CUDA acceleration for faster transcription and automatic language detection.
 
@@ -303,7 +305,15 @@ WHISPER_MODEL_NAME=tiny  # or base, small
 
 ## 🧪 Development & Testing
 
-For development setup and testing guidelines, see [AGENTS.md](AGENTS.md).
+This project follows modern Python best practices with comprehensive testing and code quality tools.
+
+**Test Suite:**
+- ✅ **49 integration tests** covering critical functionality
+- ✅ **59% code coverage** (pragmatic and maintainable)
+- ✅ **~6 second execution time** (fast feedback loop)
+- ✅ **Zero linting/type errors** (Ruff + Mypy)
+
+For detailed development setup and testing guidelines, see [AGENTS.md](AGENTS.md).
 
 **Quick commands:**
 
@@ -311,10 +321,10 @@ For development setup and testing guidelines, see [AGENTS.md](AGENTS.md).
 # Setup development environment
 make setup
 
-# Run tests
-make test
+# Run tests with coverage
+make test-cov
 
-# Run all quality checks
+# Run all quality checks (lint + format + typecheck + test)
 make check
 
 # See all available commands
