@@ -1,27 +1,38 @@
-# 🎥 YouTube Video Transcriber
+# 🎥 YouTube Video Transcriber & Script Generator
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyTorch](https://img.shields.io/badge/PyTorch-CUDA%2012.8-red.svg)](https://pytorch.org/)
-[![Tests](https://img.shields.io/badge/tests-49%20passed-brightgreen.svg)](test/)
-[![Code Coverage](https://img.shields.io/badge/coverage-59%25-yellowgreen.svg)](htmlcov/)
+[![Tests](https://img.shields.io/badge/tests-18%20passed-brightgreen.svg)](test/)
+[![Code Coverage](https://img.shields.io/badge/coverage-36%25-yellow.svg)](htmlcov/)
 
-A powerful CLI tool to download YouTube videos and transcribe them to text using [OpenAI's Whisper](https://github.com/openai/whisper) model. Supports CUDA acceleration for faster transcription and automatic language detection.
+A powerful CLI tool suite for YouTube content creators:
+
+1. **Video Transcriber**: Download and transcribe YouTube videos using OpenAI's Whisper
+2. **Script Generator** (NEW): Generate optimized YouTube scripts by learning from successful videos
 
 ## ✨ Features
 
+### Video Transcriber
 - 🚀 **Fast transcription** with CUDA GPU acceleration support
 - 🌍 **Multi-language support** with automatic language detection
 - 📝 **High accuracy** using OpenAI's Whisper models (tiny to large)
-- 🎯 **Simple CLI interface** with minimal configuration
 - 🔄 **Automatic cleanup** of temporary files
-- 📊 **Multiple model sizes** to balance speed vs accuracy
+
+### Script Generator (NEW)
+- 🎬 **AI-powered script generation** from real successful videos
+- � **Pattern analysis** of hooks, structure, CTAs, and vocabulary
+- 🧠 **Gemini AI integration** for intelligent synthesis
+- ✍️ **SEO optimization** with auto-generated titles, descriptions, and tags
+- 📈 **Quality scoring** based on proven patterns
 
 ## 📋 Table of Contents
 
 - [Prerequisites](#-prerequisites)
 - [Quick Start](#-quick-start)
 - [Usage](#-usage)
+  - [Transcribe Videos](#transcribe-videos)
+  - [Generate Scripts (NEW)](#generate-scripts-new)
 - [Configuration](#️-configuration)
 - [Troubleshooting](#-troubleshooting)
 - [Development](#-development)
@@ -134,13 +145,19 @@ python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
 ## 💻 Usage
 
-### Basic Command
+The tool provides two main commands:
+
+### 1️⃣ Transcribe Videos
+
+Transcribe YouTube videos to text files.
+
+#### Basic Command
 
 ```bash
-python -m yt_transcriber.cli --url "YOUTUBE_URL"
+python -m yt_transcriber.cli transcribe --url "YOUTUBE_URL"
 ```
 
-### Command Options
+#### Command Options
 
 | Option              | Short | Required | Description                                      |
 | ------------------- | ----- | -------- | ------------------------------------------------ |
@@ -148,33 +165,27 @@ python -m yt_transcriber.cli --url "YOUTUBE_URL"
 | `--language`        | `-l`  | ❌ No    | Force specific language (e.g., `en`, `es`, `fr`) |
 | `--ffmpeg-location` |       | ❌ No    | Custom FFmpeg path                               |
 
-### Examples
+#### Examples
 
 **Basic transcription (auto-detect language):**
 
 ```bash
-python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+python -m yt_transcriber.cli transcribe -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
 **Force Spanish transcription:**
 
 ```bash
-python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=VIDEO_ID" -l "es"
+python -m yt_transcriber.cli transcribe -u "https://www.youtube.com/watch?v=VIDEO_ID" -l "es"
 ```
 
 **With custom FFmpeg location:**
 
 ```bash
-python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=VIDEO_ID" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
+python -m yt_transcriber.cli transcribe -u "https://www.youtube.com/watch?v=VIDEO_ID" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
 ```
 
-**See all options:**
-
-```bash
-python -m yt_transcriber.cli --help
-```
-
-### Output
+#### Output
 
 After successful transcription, you'll see:
 
@@ -187,6 +198,104 @@ Transcription files are saved in the `output_transcripts/` directory with a desc
 - Video title
 - Video ID
 - Unique job timestamp
+
+---
+
+### 2️⃣ Generate Scripts (NEW)
+
+Generate AI-powered YouTube scripts from successful videos in your niche.
+
+#### Basic Command
+
+```bash
+python -m yt_transcriber.cli generate-script --idea "Your video idea"
+```
+
+#### Command Options
+
+| Option            | Required | Default | Description                                         |
+| ----------------- | -------- | ------- | --------------------------------------------------- |
+| `--idea`          | ✅ Yes   | -       | Your video idea or topic                            |
+| `--max-videos`    | ❌ No    | 10      | Number of videos to analyze                         |
+| `--duration`      | ❌ No    | 10      | Target duration in minutes                          |
+| `--min-duration`  | ❌ No    | 5       | Minimum video duration (minutes)                    |
+| `--max-duration`  | ❌ No    | 45      | Maximum video duration (minutes)                    |
+| `--style`         | ❌ No    | -       | Optional style guide (e.g., "casual", "educational")|
+
+#### Examples
+
+**Generate a 10-minute Python tutorial script:**
+
+```bash
+python -m yt_transcriber.cli generate-script --idea "Python async/await tutorial"
+```
+
+**Quick 5-minute tutorial (analyze 5 videos):**
+
+```bash
+python -m yt_transcriber.cli generate-script \
+  --idea "FastAPI REST API tutorial" \
+  --max-videos 5 \
+  --duration 5
+```
+
+**Educational video with casual style:**
+
+```bash
+python -m yt_transcriber.cli generate-script \
+  --idea "Machine learning explained" \
+  --duration 15 \
+  --style "casual and entertaining" \
+  --min-duration 10 \
+  --max-duration 20
+```
+
+#### Output
+
+The tool generates two files in timestamped directories:
+
+```
+📁 output_scripts/script_20240128_143022/
+  ├── 📄 script.md          # Generated script with SEO metadata
+  └── 📄 synthesis.md       # Pattern analysis report
+
+📁 output_analysis/analysis_20240128_143022/
+  └── 📄 synthesis_report_20240128_143022.md
+```
+
+**What you get:**
+
+- ✅ **Complete script** with intro, body, and outro
+- ✅ **SEO optimization** (title, description, tags)
+- ✅ **Quality score** (1-100 based on structure and SEO)
+- ✅ **Pattern analysis** from successful videos
+- ✅ **Estimated duration** based on word count
+
+#### See More
+
+For detailed documentation on the Script Generator, see [docs/YOUTUBE_SCRIPT_GENERATOR.md](docs/YOUTUBE_SCRIPT_GENERATOR.md).
+
+---
+
+### Help Commands
+
+**See all transcribe options:**
+
+```bash
+python -m yt_transcriber.cli transcribe --help
+```
+
+**See all generate-script options:**
+
+```bash
+python -m yt_transcriber.cli generate-script --help
+```
+
+**See main help:**
+
+```bash
+python -m yt_transcriber.cli --help
+```
 
 ## ⚙️ Configuration
 
