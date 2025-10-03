@@ -51,10 +51,41 @@ class AppSettings(BaseSettings):
         default="",
         description="Google Gemini API key para script generation",
     )
+
+    # ========== GEMINI MODEL CONFIGURATION (Optimized for Quality + Cost) ==========
+
+    # For script synthesis and generation (CRITICAL - needs max quality)
     GEMINI_PRO_MODEL: str = Field(
-        default="gemini-1.5-pro",
-        description="Modelo de Gemini para script generation (alta calidad)",
+        default="gemini-2.5-pro",
+        description="Modelo premium para synthesis y script generation ($2.50/$15.00)",
     )
+
+    # For video summarization (balanced quality, free tier)
+    SUMMARIZER_MODEL: str = Field(
+        default="gemini-2.5-flash",
+        description="Modelo para resúmenes de video (free tier, excelente calidad)",
+    )
+
+    # For pattern analysis from transcripts (10 videos, free tier)
+    PATTERN_ANALYZER_MODEL: str = Field(
+        default="gemini-2.5-flash",
+        description="Modelo para análisis de patrones (free tier, suficiente calidad)",
+    )
+
+    # For translations (summaries use lite, scripts use flash)
+    TRANSLATOR_MODEL: str = Field(
+        default="gemini-2.5-flash-lite",
+        description="Modelo para traducciones simples ($0.075/$0.30)",
+    )
+
+    # For simple tasks (query optimization)
+    QUERY_OPTIMIZER_MODEL: str = Field(
+        default="gemini-2.5-flash-lite",
+        description="Modelo para optimización de queries ($0.075/$0.30)",
+    )
+
+    # ========== DIRECTORY CONFIGURATION ==========
+
     SCRIPT_OUTPUT_DIR: Path = Field(
         default=Path("output_scripts/"),
         description="Directorio para guiones generados",
@@ -67,21 +98,9 @@ class AppSettings(BaseSettings):
         default=Path("temp_batch/"),
         description="Directorio temporal para batch processing",
     )
-
-    # Video Summarization settings (NEW)
-    SUMMARIZER_MODEL: str = Field(
-        default="gemini-2.5-flash",
-        description="Modelo de Gemini para summarization (rápido y económico)",
-    )
     SUMMARY_OUTPUT_DIR: Path = Field(
         default=Path("output_summaries/"),
         description="Directorio para resúmenes generados",
-    )
-
-    # Translation settings (NEW)
-    TRANSLATOR_MODEL: str = Field(
-        default="gemini-1.5-flash-8b",
-        description="Modelo de Gemini para traducción (mitad de precio que flash)",
     )
 
 
