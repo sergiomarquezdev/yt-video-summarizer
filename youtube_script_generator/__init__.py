@@ -12,6 +12,7 @@ Workflow:
 5. Analiza cada video extrayendo patrones (hooks, CTAs, estructura)
 6. Sintetiza los análisis en documento de mejores prácticas
 7. Genera guión optimizado usando síntesis como contexto
+8. Traduce guión al español (opcional)
 
 Módulos:
 - query_optimizer: Optimiza búsqueda con Gemini
@@ -20,6 +21,7 @@ Módulos:
 - pattern_analyzer: Analiza patrones de cada video
 - synthesizer: Sintetiza N análisis → 1 documento
 - script_generator: Genera guión final
+- translator: Traduce guiones a español
 - models: Dataclasses compartidas
 """
 
@@ -35,10 +37,11 @@ from youtube_script_generator.pattern_analyzer import PatternAnalyzer
 from youtube_script_generator.query_optimizer import OptimizedQuery, QueryOptimizer
 from youtube_script_generator.script_generator import ScriptGenerator
 from youtube_script_generator.synthesizer import PatternSynthesizer
+from youtube_script_generator.translator import ScriptTranslator
 from youtube_script_generator.youtube_searcher import YouTubeSearcher
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Sergio Marquez"
 
 __all__ = [
@@ -56,4 +59,5 @@ __all__ = [
     "PatternAnalyzer",
     "PatternSynthesizer",
     "ScriptGenerator",
+    "ScriptTranslator",
 ]

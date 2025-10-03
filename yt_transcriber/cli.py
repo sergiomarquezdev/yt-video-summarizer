@@ -273,6 +273,18 @@ def command_generate_script(args):
         )
         console.print()
 
+        # Phase 7: Translation to Spanish
+        console.print("[bold yellow]🌍 Traduciendo guión al español...[/bold yellow]")
+        from youtube_script_generator.translator import ScriptTranslator
+
+        translator = ScriptTranslator()
+        script_es = translator.translate_to_spanish(script)
+        console.print(
+            f"   [green]✓[/green] Traducción completada "
+            f"({script_es.word_count} palabras en español)"
+        )
+        console.print()
+
         # Save outputs
         console.print("[bold yellow]💾 Guardando archivos...[/bold yellow]")
 
@@ -286,15 +298,20 @@ def command_generate_script(args):
         safe_filename = "".join(c if c.isalnum() or c in " -_" else "_" for c in args.idea)
         safe_filename = safe_filename.replace(" ", "_")[:50]
 
-        # Save script
-        script_path = output_scripts / f"{safe_filename}.md"
-        script_path.write_text(script.script_markdown, encoding="utf-8")
+        # Save English script
+        script_path_en = output_scripts / f"{safe_filename}_EN.md"
+        script_path_en.write_text(script.script_markdown, encoding="utf-8")
+
+        # Save Spanish script
+        script_path_es = output_scripts / f"{safe_filename}_ES.md"
+        script_path_es.write_text(script_es.script_markdown, encoding="utf-8")
 
         # Save synthesis report
         synthesis_path = output_analysis / f"{safe_filename}_synthesis.md"
         synthesis_path.write_text(synthesis.markdown_report, encoding="utf-8")
 
-        console.print(f"   [green]✓[/green] Guión guardado: [cyan]{script_path}[/cyan]")
+        console.print(f"   [green]✓[/green] Guión (EN) guardado: [cyan]{script_path_en}[/cyan]")
+        console.print(f"   [green]✓[/green] Guión (ES) guardado: [cyan]{script_path_es}[/cyan]")
         console.print(f"   [green]✓[/green] Síntesis guardada: [cyan]{synthesis_path}[/cyan]")
         console.print()
 

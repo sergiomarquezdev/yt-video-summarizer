@@ -63,12 +63,12 @@ class YouTubeSearcher:
                 "--skip-download",
             ]
 
-            # Execute search
+            # Execute search (increased timeout for slower connections)
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=60,
+                timeout=180,  # Increased from 60 to 180 seconds
                 check=True,
             )
 
