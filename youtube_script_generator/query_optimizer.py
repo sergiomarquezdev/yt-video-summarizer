@@ -29,11 +29,12 @@ class QueryOptimizer:
         """Initialize the query optimizer.
 
         Args:
-            model_name: Gemini model name (defaults to config setting)
+            model_name: Gemini model name (defaults to QUERY_OPTIMIZER_MODEL from config)
         """
-        self.model_name = model_name or settings.GEMINI_PRO_MODEL
+        self.model_name = model_name or settings.QUERY_OPTIMIZER_MODEL
         genai.configure(api_key=settings.GOOGLE_API_KEY)
         self.model = genai.GenerativeModel(self.model_name)
+        logger.info(f"QueryOptimizer initialized with model: {self.model_name}")
 
     def optimize(self, user_query: str) -> OptimizedQuery:
         """Optimize a user query for YouTube search.

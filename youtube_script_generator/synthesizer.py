@@ -32,11 +32,12 @@ class PatternSynthesizer:
         """Initialize the pattern synthesizer.
 
         Args:
-            model_name: Gemini model name (defaults to config setting)
+            model_name: Gemini model name (defaults to GEMINI_PRO_MODEL from config)
         """
         self.model_name = model_name or settings.GEMINI_PRO_MODEL
         genai.configure(api_key=settings.GOOGLE_API_KEY)
         self.model = genai.GenerativeModel(self.model_name)
+        logger.info(f"PatternSynthesizer initialized with model: {self.model_name}")
 
     def synthesize(
         self,

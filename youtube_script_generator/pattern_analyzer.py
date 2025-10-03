@@ -19,11 +19,12 @@ class PatternAnalyzer:
         """Initialize the pattern analyzer.
 
         Args:
-            model_name: Gemini model name (defaults to config setting)
+            model_name: Gemini model name (defaults to PATTERN_ANALYZER_MODEL from config)
         """
-        self.model_name = model_name or settings.GEMINI_PRO_MODEL
+        self.model_name = model_name or settings.PATTERN_ANALYZER_MODEL
         genai.configure(api_key=settings.GOOGLE_API_KEY)
         self.model = genai.GenerativeModel(self.model_name)
+        logger.info(f"PatternAnalyzer initialized with model: {self.model_name}")
 
     def analyze(self, transcript: VideoTranscript) -> VideoAnalysis:
         """Analyze a video transcript to extract patterns.
