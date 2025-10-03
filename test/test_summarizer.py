@@ -1,18 +1,19 @@
 """Unit tests for video summarizer module."""
 
-import pytest
 from datetime import datetime
 from unittest.mock import Mock, patch
 
+import pytest
+
+from youtube_script_generator.models import TimestampedSection, VideoSummary
 from yt_transcriber.summarizer import (
     SummarizationError,
-    generate_summary,
     _detect_language,
     _extract_list_items,
     _extract_section,
     _extract_timestamps,
+    generate_summary,
 )
-from youtube_script_generator.models import VideoSummary, TimestampedSection
 
 
 class TestLanguageDetection:
@@ -55,7 +56,7 @@ class TestMarkdownParsing:
         ## 🎯 Executive Summary
         This is the summary content.
         It has multiple lines.
-        
+
         ## 🔑 Key Points
         Point 1
         """
@@ -71,7 +72,7 @@ class TestMarkdownParsing:
         1. First point here
         2. Second point here
         3. Third point here
-        
+
         ## Next Section
         """
         items = _extract_list_items(text, r"## 🔑 Key Points")
@@ -98,7 +99,7 @@ class TestMarkdownParsing:
         - **00:00** - Introduction to the topic
         - **05:30** - Main concept explained
         - **12:45** - Practical demo
-        
+
         ## Next Section
         """
         timestamps = _extract_timestamps(text)

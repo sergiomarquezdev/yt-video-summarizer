@@ -33,8 +33,8 @@ def transcribe_video_ui(
     url: str,
     language: str,
     ffmpeg_location: str,
-) -> tuple[str, str | None, str, str | None]:
-    """Transcribe a YouTube video via Gradio UI and generate AI summary.
+) -> tuple[str, str | None, str, str | None, str, str | None]:
+    """Transcribe a YouTube video via Gradio UI and generate bilingual AI summaries.
 
     Args:
         url: YouTube video URL
@@ -42,45 +42,60 @@ def transcribe_video_ui(
         ffmpeg_location: Optional custom FFmpeg path
 
     Returns:
-        Tuple of (status_message, transcript_path, summary_preview, summary_path)
+        Tuple of (status_message, transcript_path, summary_preview_en, summary_path_en, 
+                  summary_preview_es, summary_path_es)
     """
     try:
         # Validate inputs
         if not url or not url.strip():
-            return "❌ Error: Debes proporcionar una URL de YouTube", None, "", None
+            return "❌ Error: Debes proporcionar una URL de YouTube", None, "", None, "", None
 
         # Prepare arguments
         url = url.strip()
-        lang = LANGUAGE_MAP.get(language, None)  # Map UI name to ISO code
+        lang = LANGUAGE_MAP.get(language)  # Map UI name to ISO code
         ffmpeg = ffmpeg_location.strip() if ffmpeg_location and ffmpeg_location.strip() else None
 
-        # Run transcription and summary generation
+        # Run transcription and bilingual summary generation
         logger.info(f"Starting transcription for URL: {url}")
-        transcript_path, summary_path = run_transcribe_command(
+        transcript_path, summary_path_en, summary_path_es = run_transcribe_command(
             url=url,
             language=lang,
             ffmpeg_location=ffmpeg,
         )
 
-        # Read summary content for preview
-        summary_preview = ""
-        if summary_path and Path(summary_path).exists():
-            with open(summary_path, "r", encoding="utf-8") as f:
-                summary_preview = f.read()
+        # Read summary contents for preview
+        summary_preview_en = ""
+        if summary_path_en and Path(summary_path_en).exists():
+            with open(summary_path_en, encoding="utf-8") as f:
+                summary_preview_en = f.read()
+
+        summary_preview_es = ""
+        if summary_path_es and Path(summary_path_es).exists():
+            with open(summary_path_es, encoding="utf-8") as f:
+                summary_preview_es = f.read()
 
         # Build status message
         if transcript_path and Path(transcript_path).exists():
-            success_msg = f"✅ Transcripción y resumen completados!\n\n"
+            success_msg = "✅ Transcripción y resúmenes bilingües completados!\n\n"
             success_msg += f"📄 Transcripción: {transcript_path}\n"
-            if summary_path:
-                success_msg += f"📋 Resumen: {summary_path}\n"
-            return success_msg, transcript_path, summary_preview, summary_path
+            if summary_path_en:
+                success_msg += f"📋 Resumen (EN): {summary_path_en}\n"
+            if summary_path_es:
+                success_msg += f"📋 Resumen (ES): {summary_path_es}\n"
+            return (
+                success_msg,
+                transcript_path,
+                summary_preview_en,
+                summary_path_en,
+                summary_preview_es,
+                summary_path_es,
+            )
         else:
-            return "❌ Error: La transcripción falló (archivo no generado)", None, "", None
+            return "❌ Error: La transcripción falló (archivo no generado)", None, "", None, "", None
 
     except Exception as e:
         logger.error(f"Transcription error in UI: {e}", exc_info=True)
-        return f"❌ Error durante la transcripción: {str(e)}", None, "", None
+        return f"❌ Error durante la transcripción: {str(e)}", None, "", None, "", None
 
 
 def generate_script_ui(
@@ -273,21 +288,39 @@ with gr.Blocks(
                 show_copy_button=False,
             )
 
+            # File downloads
             with gr.Row():
                 transcribe_file = gr.File(
                     label="📄 Descargar Transcripción",
                     interactive=False,
                 )
 
-                summary_file = gr.File(
-                    label="📋 Descargar Resumen",
+            # Bilingual summary downloads side by side
+            gr.Markdown("#### 📋 Resúmenes Bilingües")
+            with gr.Row():
+                summary_file_en = gr.File(
+                    label="📋 Resumen (EN)",
                     interactive=False,
                 )
 
-            summary_preview = gr.Markdown(
-                label="Vista Previa del Resumen",
-                value="",
-            )
+                summary_file_es = gr.File(
+                    label="📋 Resumen (ES)",
+                    interactive=False,
+                )
+
+            # Tabbed preview for both summaries
+            with gr.Tabs():
+                with gr.TabItem("🇬🇧 English"):
+                    summary_preview_en = gr.Markdown(
+                        label="Vista Previa - English",
+                        value="",
+                    )
+
+                with gr.TabItem("🇪🇸 Español"):
+                    summary_preview_es = gr.Markdown(
+                        label="Vista Previa - Español",
+                        value="",
+                    )
 
         # ===== RIGHT COLUMN: GENERATE SCRIPT =====
         with gr.Column(scale=1):
@@ -358,7 +391,7 @@ with gr.Blocks(
     gr.Markdown(
         f"""
         ---
-        **⚙️ Configuración:** Whisper `{settings.WHISPER_MODEL_NAME}` ({settings.WHISPER_DEVICE}) • Google Gemini API  
+        **⚙️ Configuración:** Whisper `{settings.WHISPER_MODEL_NAME}` ({settings.WHISPER_DEVICE}) • Google Gemini API
         **📁 Outputs:** `{settings.OUTPUT_TRANSCRIPTS_DIR}` • `{settings.SCRIPT_OUTPUT_DIR}`
         """,
     )
@@ -376,8 +409,10 @@ with gr.Blocks(
         outputs=[
             transcribe_output,
             transcribe_file,
-            summary_preview,
-            summary_file,
+            summary_preview_en,
+            summary_file_en,
+            summary_preview_es,
+            summary_file_es,
         ],
         api_name="transcribe",
     )

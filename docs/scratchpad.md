@@ -2,12 +2,13 @@
 
 ## Current Task
 
-🎯 **Feature**: Video Summarization con IA  
-📅 **Fecha inicio**: 2025-10-03  
-📊 **Estado**: ✅ Planning Complete → Ready for Execution  
+🎯 **Feature**: Video Summarization con IA
+📅 **Fecha inicio**: 2025-10-03
+📊 **Estado**: ✅ Planning Complete → Ready for Execution
 🔗 **Plan detallado**: [implementation-plan/video-summarization.md](implementation-plan/video-summarization.md)
 
 ### User Requirements (Confirmados)
+
 - ✅ Transcripción + Resumen SIEMPRE generados juntos (2 archivos)
 - ✅ Sin checkbox, sin opciones - automático como EN/ES scripts
 - ✅ Timestamps siempre incluidos
@@ -96,37 +97,41 @@ frontend/
 ## Next Steps - EXECUTION MODE
 
 ### PHASE 1: Core Implementation (2h estimado)
+
 1. ⏳ Crear dataclasses en `youtube_script_generator/models.py`
 2. ⏳ Implementar `yt_transcriber/summarizer.py`
 3. ⏳ Actualizar `config.py` con settings
 4. ⏳ Tests unitarios básicos
 
 ### PHASE 2: CLI Integration (1h estimado)
+
 5. ⏳ Modificar `cli.py` - función `transcribe_video_ui()`
 6. ⏳ Wrapper que genera transcripción + resumen
 7. ⏳ Tests de integración CLI
 
 ### PHASE 3: Gradio UI Integration (1h estimado)
+
 8. ⏳ Modificar `frontend/gradio_app.py`
 9. ⏳ Añadir output adicional para resumen
 10. ⏳ Simplificar dropdowns (solo ES/EN)
 11. ⏳ Tests manuales UI
 
 ### PHASE 4: Testing & Documentation (1.5h estimado)
+
 12. ⏳ Suite completa de tests
 13. ⏳ Actualizar README.md
 14. ⏳ Actualizar frontend/README.md
 15. ⏳ Actualizar AGENTS.md
 
 ### PHASE 5: Polish & Deployment (0.5h estimado)
+
 16. ⏳ Linting y formatting
 17. ⏳ Type checking (Mypy)
 18. ⏳ Coverage check
 19. ⏳ Git commit & push
 
-**Total estimado**: 6 horas  
-**Progreso**: 0/19 tareas completadas
-7. ⏳ Commit y push
+**Total estimado**: 6 horas
+**Progreso**: 0/19 tareas completadas 7. ⏳ Commit y push
 
 ---
 

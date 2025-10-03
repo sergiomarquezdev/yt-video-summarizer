@@ -2,10 +2,11 @@
 
 import logging
 import re
+from datetime import datetime
 
 import google.generativeai as genai
 
-from youtube_script_generator.models import GeneratedScript
+from youtube_script_generator.models import GeneratedScript, TimestampedSection, VideoSummary
 from yt_transcriber.config import settings
 
 
@@ -76,6 +77,127 @@ class ScriptTranslator:
         except Exception as e:
             logger.error(f"Translation failed: {e}")
             raise TranslationError(f"Failed to translate script: {e}") from e
+
+    def translate_summary(self, summary: VideoSummary) -> VideoSummary:
+        """Translate video summary from English to Spanish with context awareness.
+
+        Args:
+            summary: VideoSummary object in English
+
+        Returns:
+            New VideoSummary object with Spanish translation
+
+        Raises:
+            TranslationError: If translation fails
+        """
+        logger.info(f"Translating summary: {summary.video_title}")
+
+        try:
+            # Translate executive summary
+            translated_executive = self._translate_text_block(
+                summary.executive_summary,
+                "executive summary",
+                summary.video_title,
+            )
+
+            # Translate key points (list of strings)
+            translated_key_points = [
+                self._translate_text_block(point, "key point", summary.video_title)
+                for point in summary.key_points
+            ]
+
+            # Translate timestamps (preserve timestamp format, translate descriptions)
+            translated_timestamps = [
+                TimestampedSection(
+                    timestamp=ts.timestamp,  # Keep timestamp unchanged
+                    description=self._translate_text_block(
+                        ts.description, "timestamp description", summary.video_title
+                    ),
+                    importance=ts.importance,  # Keep importance score
+                )
+                for ts in summary.timestamps
+            ]
+
+            # Translate conclusion
+            translated_conclusion = self._translate_text_block(
+                summary.conclusion,
+                "conclusion",
+                summary.video_title,
+            )
+
+            # Translate action items
+            translated_action_items = [
+                self._translate_text_block(item, "action item", summary.video_title)
+                for item in summary.action_items
+            ]
+
+            # Create new summary object with Spanish translations
+            translated_summary = VideoSummary(
+                video_url=summary.video_url,
+                video_title=summary.video_title,  # Keep original title
+                video_id=summary.video_id,
+                executive_summary=translated_executive,
+                key_points=translated_key_points,
+                timestamps=translated_timestamps,
+                conclusion=translated_conclusion,
+                action_items=translated_action_items,
+                word_count=summary.word_count,  # Keep original count
+                estimated_duration_minutes=summary.estimated_duration_minutes,
+                language="es",  # Mark as Spanish
+                generated_at=datetime.now(),  # New timestamp for translation
+            )
+
+            logger.info("Summary translation completed successfully")
+            return translated_summary
+
+        except Exception as e:
+            logger.error(f"Summary translation failed: {e}")
+            raise TranslationError(f"Failed to translate summary: {e}") from e
+
+    def _translate_text_block(self, text: str, block_type: str, video_title: str) -> str:
+        """Translate a text block with context awareness.
+
+        Args:
+            text: Text to translate
+            block_type: Type of block (for context)
+            video_title: Video title for additional context
+
+        Returns:
+            Translated text in Spanish
+        """
+        prompt = f"""Translate the following text to Spanish with these requirements:
+
+CONTEXT: This is a {block_type} from a video summary about: "{video_title}"
+
+TRANSLATION RULES:
+1. Use NATURAL Spanish (neutral for Spain/Latin America)
+2. Preserve technical terms in English when appropriate:
+   - Software/tool names (Claude, Gemini, VS Code, Chrome, etc.)
+   - Programming terms (API, SDK, plugin, extension, etc.)
+   - Product names (Photoshop, Docker, npm, etc.)
+3. Adapt expressions idiomatically, not literally
+4. Maintain professional but accessible tone
+5. Keep it concise and clear
+6. If text has bold (**text**), preserve markdown formatting
+
+TEXT TO TRANSLATE:
+{text}
+
+OUTPUT: Only the translated text in Spanish, nothing else."""
+
+        try:
+            response = self.model.generate_content(prompt)
+            translated = response.text.strip()
+
+            if not translated:
+                logger.warning(f"Empty translation for {block_type}, using original")
+                return text
+
+            return translated
+
+        except Exception as e:
+            logger.warning(f"Translation failed for {block_type}, using original: {e}")
+            return text
 
     def _translate_content(self, content: str, title: str) -> str:
         """Translate script content with context preservation.

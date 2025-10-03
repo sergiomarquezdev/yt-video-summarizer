@@ -213,11 +213,11 @@ python -m yt_transcriber.cli transcribe --url "YOUTUBE_URL"
 
 #### Command Options
 
-| Option              | Short | Required | Description                                      |
-| ------------------- | ----- | -------- | ------------------------------------------------ |
-| `--url`             | `-u`  | ✅ Yes   | YouTube video URL                                |
-| `--language`        | `-l`  | ❌ No    | Force specific language (e.g., `en`, `es`)       |
-| `--ffmpeg-location` |       | ❌ No    | Custom FFmpeg path                               |
+| Option              | Short | Required | Description                                |
+| ------------------- | ----- | -------- | ------------------------------------------ |
+| `--url`             | `-u`  | ✅ Yes   | YouTube video URL                          |
+| `--language`        | `-l`  | ❌ No    | Force specific language (e.g., `en`, `es`) |
+| `--ffmpeg-location` |       | ❌ No    | Custom FFmpeg path                         |
 
 #### Examples
 
