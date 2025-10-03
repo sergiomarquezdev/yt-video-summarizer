@@ -14,12 +14,14 @@ A powerful CLI tool suite for YouTube content creators:
 ## ✨ Features
 
 ### Video Transcriber
+
 - 🚀 **Fast transcription** with CUDA GPU acceleration support
 - 🌍 **Multi-language support** with automatic language detection
 - 📝 **High accuracy** using OpenAI's Whisper models (tiny to large)
 - 🔄 **Automatic cleanup** of temporary files
 
 ### Script Generator (NEW)
+
 - 🎬 **AI-powered script generation** from real successful videos
 - � **Pattern analysis** of hooks, structure, CTAs, and vocabulary
 - 🧠 **Gemini AI integration** for intelligent synthesis
@@ -213,14 +215,14 @@ python -m yt_transcriber.cli generate-script --idea "Your video idea"
 
 #### Command Options
 
-| Option            | Required | Default | Description                                         |
-| ----------------- | -------- | ------- | --------------------------------------------------- |
-| `--idea`          | ✅ Yes   | -       | Your video idea or topic                            |
-| `--max-videos`    | ❌ No    | 10      | Number of videos to analyze                         |
-| `--duration`      | ❌ No    | 10      | Target duration in minutes                          |
-| `--min-duration`  | ❌ No    | 5       | Minimum video duration (minutes)                    |
-| `--max-duration`  | ❌ No    | 45      | Maximum video duration (minutes)                    |
-| `--style`         | ❌ No    | -       | Optional style guide (e.g., "casual", "educational")|
+| Option           | Required | Default | Description                                          |
+| ---------------- | -------- | ------- | ---------------------------------------------------- |
+| `--idea`         | ✅ Yes   | -       | Your video idea or topic                             |
+| `--max-videos`   | ❌ No    | 10      | Number of videos to analyze                          |
+| `--duration`     | ❌ No    | 10      | Target duration in minutes                           |
+| `--min-duration` | ❌ No    | 5       | Minimum video duration (minutes)                     |
+| `--max-duration` | ❌ No    | 45      | Maximum video duration (minutes)                     |
+| `--style`        | ❌ No    | -       | Optional style guide (e.g., "casual", "educational") |
 
 #### Examples
 
@@ -417,6 +419,7 @@ WHISPER_MODEL_NAME=tiny  # or base, small
 This project follows modern Python best practices with comprehensive testing and code quality tools.
 
 **Test Suite:**
+
 - ✅ **49 integration tests** covering critical functionality
 - ✅ **59% code coverage** (pragmatic and maintainable)
 - ✅ **~6 second execution time** (fast feedback loop)

@@ -9,10 +9,12 @@ YouTube Video Transcriber & Script Generator - A Python CLI tool with dual funct
 
 **Tech Stack:** Python 3.13+, PyTorch (CUDA 12.8), Whisper, yt-dlp, Pydantic, Google Gemini API, UV (package manager)
 **Main Entry Points:**
+
 - `yt_transcriber/cli.py` - Main CLI with subcommands (transcribe, generate-script)
 - `youtube_script_generator/` - Script generation pipeline (6 phases)
 
 **Architecture:** Modular CLI with two independent workflows:
+
 - **Transcription Pipeline**: Download → Transcribe → Save
 - **Script Generation Pipeline**: Query Optimization → YouTube Search → Batch Download/Transcribe → Pattern Analysis → Synthesis → Script Generation
 
@@ -445,7 +447,7 @@ WHISPER_MODEL_NAME=base          # Options: tiny, base, small, medium, large
 WHISPER_DEVICE=cuda              # Options: cuda, cpu
 
 # Google Gemini API (for Script Generator)
-GEMINI_API_KEY=your_api_key_here # Get from: https://aistudio.google.com/apikey
+GOOGLE_API_KEY=your_api_key_here # Get from: https://aistudio.google.com/apikey
 
 # Logging
 LOG_LEVEL=INFO                   # Options: DEBUG, INFO, WARNING, ERROR
@@ -481,24 +483,28 @@ User Idea → [Phase 1] Query Optimization → [Phase 2] YouTube Search →
 ### Core Components
 
 #### Phase 1: Query Optimizer (`query_optimizer.py`)
+
 - **Purpose**: Transform user ideas into optimized YouTube search queries
 - **AI Integration**: Google Gemini API for query enhancement
 - **Features**: Stopword removal, trending keyword addition, fallback generation
 - **Output**: `OptimizedQuery` with search_query, target_audience, content_type
 
 #### Phase 2: YouTube Searcher (`youtube_searcher.py`)
+
 - **Purpose**: Find high-quality YouTube videos matching the optimized query
 - **Integration**: YouTube Data API v3 via `googleapiclient`
-- **Filtering**: Duration range (5-45 min), quality ranking (view_count * 0.7 + like_count * 0.3)
+- **Filtering**: Duration range (5-45 min), quality ranking (view*count * 0.7 + like*count * 0.3)
 - **Output**: List of `YouTubeVideo` with metadata (title, URL, duration, views, quality_score)
 
 #### Phase 3: Batch Processor (`batch_processor.py`)
+
 - **Purpose**: Download and transcribe multiple videos in parallel
 - **Integration**: Reuses existing `Downloader` and `Transcriber` from yt_transcriber
 - **Features**: Parallel processing, temp file cleanup, quality score calculation
 - **Output**: Updated `YouTubeVideo` objects with `transcript_text` and `quality_score`
 
 #### Phase 4: Pattern Analyzer (`pattern_analyzer.py`)
+
 - **Purpose**: Extract 8 pattern categories from video transcripts
 - **AI Integration**: Gemini API for structured pattern extraction
 - **Patterns Extracted**:
@@ -513,6 +519,7 @@ User Idea → [Phase 1] Query Optimization → [Phase 2] YouTube Search →
 - **Output**: `VideoAnalysis` with effectiveness_score (1-100)
 
 #### Phase 5: Pattern Synthesizer (`synthesizer.py`)
+
 - **Purpose**: Aggregate patterns from multiple analyses into actionable insights
 - **Algorithm**: Weighted aggregation using effectiveness_score
 - **Features**:
@@ -523,6 +530,7 @@ User Idea → [Phase 1] Query Optimization → [Phase 2] YouTube Search →
 - **Output**: `PatternSynthesis` with aggregated patterns + markdown report
 
 #### Phase 6: Script Generator (`script_generator.py`)
+
 - **Purpose**: Generate complete YouTube scripts from synthesis patterns
 - **AI Integration**: Gemini API with pattern-aware prompts
 - **Features**:
