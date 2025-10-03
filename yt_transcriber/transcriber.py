@@ -2,9 +2,9 @@
 import dataclasses
 import logging
 from pathlib import Path
-from typing import Optional
 
 import whisper
+
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class TranscriptionResult:
     """Contiene el resultado de una transcripción."""
 
     text: str
-    language: Optional[str] = None
+    language: str | None = None
 
 
 class TranscriptionError(Exception):
@@ -26,7 +26,7 @@ class TranscriptionError(Exception):
 def transcribe_audio_file(
     audio_path: Path,
     model: whisper.Whisper,
-    language: Optional[str] = None,
+    language: str | None = None,
 ) -> TranscriptionResult:
     """
     Transcribe un archivo de audio utilizando el modelo Whisper proporcionado.
@@ -43,9 +43,7 @@ def transcribe_audio_file(
     Raises:
         TranscriptionError: Si el archivo no existe o si ocurre un error en Whisper.
     """
-    logger.info(
-        f"Iniciando transcripción para: {audio_path} usando modelo Whisper pre-cargado."
-    )
+    logger.info(f"Iniciando transcripción para: {audio_path} usando modelo Whisper pre-cargado.")
 
     if not audio_path.exists():
         logger.error(f"Error de transcripción: Archivo de audio no encontrado en {audio_path}")

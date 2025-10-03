@@ -29,6 +29,14 @@ output_transcripts/
 .coverage
 htmlcov/
 
+# Modern Python tooling caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# UV package manager
+uv.lock
+
 # Cursor
 .cursor/
 .cursorrules

@@ -3,11 +3,11 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from yt_transcriber import config, downloader, transcriber, utils
 from yt_transcriber.downloader import DownloadError
 from yt_transcriber.transcriber import TranscriptionError
+
 
 # Configuración del logger
 logger = logging.getLogger(__name__)
@@ -41,9 +41,7 @@ def load_whisper_model():
 
     try:
         model = whisper.load_model(config.settings.WHISPER_MODEL_NAME, device=device)
-        logger.info(
-            f"Modelo Whisper '{config.settings.WHISPER_MODEL_NAME}' cargado en '{device}'."
-        )
+        logger.info(f"Modelo Whisper '{config.settings.WHISPER_MODEL_NAME}' cargado en '{device}'.")
         return model
     except Exception as e:
         logger.critical(
@@ -62,7 +60,8 @@ def get_youtube_title(youtube_url: str) -> str:
             info = ydl.extract_info(youtube_url, download=False)
             if info is None:
                 return "untitled"
-            return info.get("title", "untitled")
+            title: str = info.get("title", "untitled")  # type: ignore[assignment]
+            return title
     except Exception as e:
         logger.error(f"No se pudo extraer el título automáticamente: {e}")
         return "untitled"
@@ -72,9 +71,9 @@ def process_transcription(
     youtube_url: str,
     title: str,
     model,
-    language: Optional[str] = None,
-    ffmpeg_location: Optional[str] = None,
-) -> Optional[Path]:
+    language: str | None = None,
+    ffmpeg_location: str | None = None,
+) -> Path | None:
     """
     Lógica principal para descargar, transcribir y guardar la transcripción.
     """
@@ -98,9 +97,7 @@ def process_transcription(
         transcription_result = transcriber.transcribe_audio_file(
             audio_path=download_result.audio_path, model=model, language=language
         )
-        logger.info(
-            f"Transcripción completada. Idioma detectado: {transcription_result.language}"
-        )
+        logger.info(f"Transcripción completada. Idioma detectado: {transcription_result.language}")
 
         # 3. Guardar la transcripción
         logger.info("Paso 3: Guardando transcripción...")
@@ -116,13 +113,13 @@ def process_transcription(
         )
 
         if not output_file_path:
-            raise IOError("No se pudo guardar el archivo de transcripción.")
+            raise OSError("No se pudo guardar el archivo de transcripción.")
 
         logger.info(f"Transcripción guardada exitosamente en: {output_file_path}")
         print(f"\nTranscripción guardada en: {output_file_path}")
         return output_file_path
 
-    except (DownloadError, TranscriptionError, IOError) as e:
+    except (OSError, DownloadError, TranscriptionError) as e:
         logger.error(f"Ha ocurrido un error en el proceso: {e}", exc_info=True)
         print(f"\nError: {e}", file=sys.stderr)
         return None
@@ -138,9 +135,7 @@ def process_transcription(
 
 def main():
     """Punto de entrada principal para el CLI."""
-    parser = argparse.ArgumentParser(
-        description="Transcribe un video de YouTube a texto."
-    )
+    parser = argparse.ArgumentParser(description="Transcribe un video de YouTube a texto.")
     parser.add_argument(
         "-u",
         "--url",
@@ -167,8 +162,7 @@ def main():
 
     # Validar la URL de YouTube
     if not (
-        args.url.startswith("https://www.youtube.com/")
-        or args.url.startswith("https://youtu.be/")
+        args.url.startswith("https://www.youtube.com/") or args.url.startswith("https://youtu.be/")
     ):
         logger.error(f"URL de YouTube no válida: {args.url}")
         print("Error: La URL no parece ser una URL válida de YouTube.", file=sys.stderr)

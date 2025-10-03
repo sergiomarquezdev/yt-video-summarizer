@@ -2,7 +2,7 @@ import logging
 import re
 import shutil
 from pathlib import Path
-from typing import Optional
+
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +53,8 @@ def save_transcription_to_file(
     transcription_text: str,
     output_filename_no_ext: str,
     output_dir: Path,
-    original_title: Optional[str] = None,
-) -> Optional[Path]:
+    original_title: str | None = None,
+) -> Path | None:
     """
     Guarda el texto de la transcripción en un archivo .txt.
 
@@ -75,9 +75,7 @@ def save_transcription_to_file(
 
         content_to_write = transcription_text
         if original_title:
-            content_to_write = (
-                f"# Original Video Title: {original_title}\n\n{transcription_text}"
-            )
+            content_to_write = f"# Original Video Title: {original_title}\n\n{transcription_text}"
 
         file_path.write_text(content_to_write, encoding="utf-8")
         logger.info(f"Transcripción guardada en: {file_path}")
@@ -90,7 +88,7 @@ def save_transcription_to_file(
         return None
 
 
-def cleanup_temp_files(file_paths_to_delete: list[Optional[str]]):
+def cleanup_temp_files(file_paths_to_delete: list[str | None]):
     """
     Elimina una lista de archivos temporalmente.
 
@@ -110,9 +108,7 @@ def cleanup_temp_files(file_paths_to_delete: list[Optional[str]]):
             except OSError as e:
                 logger.error(f"Error al eliminar el archivo temporal {file_path}: {e}")
         else:
-            logger.warning(
-                f"Se intentó limpiar el archivo temporal {file_path}, pero no existe."
-            )
+            logger.warning(f"Se intentó limpiar el archivo temporal {file_path}, pero no existe.")
     logger.info(
         f"Limpieza de archivos temporales: {cleaned_count} archivo(s) eliminado(s) de {len(valid_paths_to_check)} solicitado(s) (existentes)."
     )
@@ -133,7 +129,7 @@ def cleanup_temp_dir(temp_dir_path: Path):
         )
 
 
-def get_file_size_mb(file_path: Path) -> Optional[float]:
+def get_file_size_mb(file_path: Path) -> float | None:
     """
     Obtiene el tamaño de un archivo en megabytes.
     """

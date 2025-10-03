@@ -1,157 +1,352 @@
-# Transcriptor de YouTube a Texto (CLI)
+# 🎥 YouTube Video Transcriber
 
-Herramienta CLI para descargar videos de YouTube y transcribirlos a texto usando [OpenAI's Whisper](https://github.com/openai/whisper).
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PyTorch](https://img.shields.io/badge/PyTorch-CUDA%2012.8-red.svg)](https://pytorch.org/)
 
-## 1. Requisitos Previos
+A powerful CLI tool to download YouTube videos and transcribe them to text using [OpenAI's Whisper](https://github.com/openai/whisper) model. Supports CUDA acceleration for faster transcription and automatic language detection.
 
-- **Python 3.9 o superior.**
-- **ffmpeg**: Necesario para el procesamiento de audio. Asegúrate de que esté instalado y disponible en el PATH de tu sistema.
+## ✨ Features
 
-### Instalación de FFmpeg en Windows
+- 🚀 **Fast transcription** with CUDA GPU acceleration support
+- 🌍 **Multi-language support** with automatic language detection
+- 📝 **High accuracy** using OpenAI's Whisper models (tiny to large)
+- 🎯 **Simple CLI interface** with minimal configuration
+- 🔄 **Automatic cleanup** of temporary files
+- 📊 **Multiple model sizes** to balance speed vs accuracy
 
-1. **Descarga FFmpeg:**
+## 📋 Table of Contents
 
-   - Ve a [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases)
-   - Descarga `ffmpeg-master-latest-win64-gpl-shared.zip`
+- [Prerequisites](#-prerequisites)
+- [Quick Start](#-quick-start)
+- [Usage](#-usage)
+- [Configuration](#️-configuration)
+- [Troubleshooting](#-troubleshooting)
+- [Development](#-development)
 
-2. **Instala FFmpeg:**
+## 🔧 Prerequisites
 
-   - Extrae el ZIP y copia la carpeta a `C:\ffmpeg`
-   - Verifica que `C:\ffmpeg\bin\ffmpeg.exe` exista
+Before you begin, ensure you have the following installed:
 
-3. **Configuración (elige una opción):**
+- **Python 3.9 or higher** - [Download here](https://www.python.org/downloads/)
+- **FFmpeg** - Required for audio processing
+- **CUDA 12.8** (Optional) - For GPU acceleration with NVIDIA GPUs
 
-   **Opción A - Configurar PATH (permanente):**
+### FFmpeg Installation
+
+<details>
+<summary><b>Windows Installation</b></summary>
+
+1. **Download FFmpeg:**
+
+   - Visit [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases)
+   - Download `ffmpeg-master-latest-win64-gpl-shared.zip`
+
+2. **Install FFmpeg:**
+
+   ```powershell
+   # Extract and copy to C:\ffmpeg
+   # Verify the installation
+   Test-Path "C:\ffmpeg\bin\ffmpeg.exe"
+   ```
+
+3. **Choose configuration method:**
+
+   **Option A - Add to PATH (Recommended):**
 
    ```powershell
    [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\ffmpeg\bin", [EnvironmentVariableTarget]::User)
    ```
 
-   **Opción B - Usar ruta directa (recomendado):**
+   **Option B - Use direct path in CLI:**
 
    ```bash
    python -m yt_transcriber.cli -u "URL" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
    ```
 
-4. **Verifica la instalación:**
+4. **Verify installation:**
    ```powershell
    ffmpeg -version
    ```
+   </details>
 
-### Solución de problemas con FFmpeg
-
-Si encuentras el error `ffmpeg not found`:
-
-1. **Verifica la instalación:**
-
-   ```powershell
-   & "C:\ffmpeg\bin\ffmpeg.exe" -version
-   ```
-
-2. **Solución rápida - Usa ruta directa:**
-
-   ```bash
-   python -m yt_transcriber.cli -u "URL" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
-   ```
-
-3. **Si necesitas configurar PATH:**
-   ```powershell
-   $env:PATH += ";C:\ffmpeg\bin"  # Temporal
-   # o
-   [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\ffmpeg\bin", [EnvironmentVariableTarget]::User)  # Permanente
-   ```
-
-## 2. Instalación
-
-1.  **Clona el repositorio:**
-
-    ```bash
-    git clone <URL_DEL_REPOSITORIO>
-    cd yt-video-summarizer
-    ```
-
-2.  **Crea y activa un entorno virtual (recomendado):**
-
-    ```bash
-    python -m venv venv
-    ```
-
-    - En Windows:
-      ```bash
-      venv\Scripts\activate
-      ```
-    - En macOS/Linux:
-      ```bash
-      source venv/bin/activate
-      ```
-
-3.  **Instala las dependencias:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-## 3. Cómo Usarlo
-
-Para transcribir un video, ejecuta el siguiente comando desde la raíz del proyecto:
+<details>
+<summary><b>macOS Installation</b></summary>
 
 ```bash
-python -m yt_transcriber.cli --url "LA_URL_DE_YOUTUBE" [--language "CODIGO_IDIOMA"] [--ffmpeg-location "RUTA_FFMPEG"]
+# Using Homebrew
+brew install ffmpeg
+
+# Verify installation
+ffmpeg -version
 ```
 
-- `--url` / `-u`: **(Obligatorio)** La dirección web completa del video de YouTube.
-- `--language` / `-l`: **(Opcional)** El código del idioma (ej. `en`, `es`, `fr`) para forzar la transcripción en ese idioma. Si no se especifica, Whisper lo detectará automáticamente.
-- `--ffmpeg-location`: **(Opcional)** Ruta personalizada a FFmpeg (ej. `C:\ffmpeg\bin\ffmpeg.exe`). Útil si FFmpeg no está en el PATH del sistema.
+</details>
 
-### Ejemplos
+<details>
+<summary><b>Linux Installation</b></summary>
 
-- **Detección automática de idioma:**
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install ffmpeg
 
-  ```bash
-  python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-  ```
+# Fedora
+sudo dnf install ffmpeg
 
-- **Forzar transcripción en español:**
+# Arch Linux
+sudo pacman -S ffmpeg
 
-  ```bash
-  python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=video_en_otro_idioma" -l "es"
-  ```
-
-- **Especificar ruta personalizada de FFmpeg:**
-  ```bash
-  python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=video_id" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
-  ```
-
-Al finalizar, la consola indicará la ruta donde se guardó el archivo de transcripción:
-
-```
-Transcripción guardada en: output_transcripts/MiVideo_vid_VIDEO_ID_job_20231028123456.txt
+# Verify installation
+ffmpeg -version
 ```
 
-## 4. Funcionamiento
+</details>
 
-- **Título del Video**: El título se extrae automáticamente de YouTube para nombrar el archivo de salida de forma descriptiva.
-- **Detección de Idioma**: Por defecto, Whisper detecta automáticamente el idioma del audio. Puedes forzar un idioma específico usando el argumento `--language` (o `-l`), lo cual puede mejorar la precisión si el idioma es conocido.
-- **Archivos de Salida**: Las transcripciones se guardan en la carpeta `output_transcripts/`. El nombre del archivo incluye el título del video, su ID y un identificador único del proceso para evitar colisiones.
-- **Archivos Temporales**: Los videos y audios descargados se almacenan temporalmente en una subcarpeta única dentro de `temp_files/` y se eliminan automáticamente al finalizar el proceso.
+## 🚀 Quick Start
 
-## 5. Configuración
+```bash
+# Clone the repository
+git clone https://github.com/sergiomarquezdev/yt-video-summarizer.git
+cd yt-video-summarizer
 
-Puedes personalizar el comportamiento de la aplicación mediante variables de entorno. La forma más sencilla es crear un archivo `.env` en la raíz del proyecto.
+# Create virtual environment
+python -m venv venv
 
-Estas son las variables disponibles:
+# Activate virtual environment
+.\venv\Scripts\activate  # Windows
+source venv/bin/activate  # macOS/Linux
 
-| Variable                 | Valores posibles                                | Descripción                                                                           |
-| ------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `WHISPER_MODEL_NAME`     | `tiny`, `base`, `small`, `medium`, `large`      | Selecciona el modelo de Whisper a usar. Por defecto: `base`.                          |
-| `WHISPER_DEVICE`         | `cpu`, `cuda`                                   | Dispositivo para ejecutar Whisper. `cpu` (Por defecto) o `cuda` (si está disponible). |
-| `TEMP_DOWNLOAD_DIR`      | Ruta (ej: `temp_files/`)                        | Carpeta donde se guardan archivos temporales. Por defecto: `temp_files/`.             |
-| `OUTPUT_TRANSCRIPTS_DIR` | Ruta (ej: `output_transcripts/`)                | Carpeta donde se guardan las transcripciones. Por defecto: `output_transcripts/`.     |
-| `LOG_LEVEL`              | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` | Nivel de detalle de los logs en consola. Por defecto: `INFO`.                         |
+# Install dependencies
+pip install -r requirements.txt
 
-**Ejemplo de archivo `.env`:**
+# Create configuration file
+copy .env.example .env  # Windows
+cp .env.example .env    # macOS/Linux
+
+# Transcribe your first video!
+python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+```
+
+**For Developers:** Use `make setup` for automated environment configuration with modern tooling (UV, Ruff, Mypy). See [AGENTS.md](AGENTS.md) for details.
+
+## 💻 Usage
+
+### Basic Command
+
+```bash
+python -m yt_transcriber.cli --url "YOUTUBE_URL"
+```
+
+### Command Options
+
+| Option              | Short | Required | Description                                      |
+| ------------------- | ----- | -------- | ------------------------------------------------ |
+| `--url`             | `-u`  | ✅ Yes   | YouTube video URL                                |
+| `--language`        | `-l`  | ❌ No    | Force specific language (e.g., `en`, `es`, `fr`) |
+| `--ffmpeg-location` |       | ❌ No    | Custom FFmpeg path                               |
+
+### Examples
+
+**Basic transcription (auto-detect language):**
+
+```bash
+python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+```
+
+**Force Spanish transcription:**
+
+```bash
+python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=VIDEO_ID" -l "es"
+```
+
+**With custom FFmpeg location:**
+
+```bash
+python -m yt_transcriber.cli -u "https://www.youtube.com/watch?v=VIDEO_ID" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
+```
+
+**See all options:**
+
+```bash
+python -m yt_transcriber.cli --help
+```
+
+### Output
+
+After successful transcription, you'll see:
 
 ```
-WHISPER_MODEL_NAME=small
-WHISPER_DEVICE=cuda
-LOG_LEVEL=DEBUG
+✅ Transcription saved: output_transcripts/VideoTitle_vid_VIDEO_ID_job_20231028123456.txt
 ```
+
+Transcription files are saved in the `output_transcripts/` directory with a descriptive filename including:
+
+- Video title
+- Video ID
+- Unique job timestamp
+
+## ⚙️ Configuration
+
+Create a `.env` file in the project root to customize behavior:
+
+```bash
+# Whisper Model Configuration
+WHISPER_MODEL_NAME=base          # Options: tiny, base, small, medium, large
+WHISPER_DEVICE=cuda              # Options: cuda, cpu
+
+# Logging
+LOG_LEVEL=INFO                   # Options: DEBUG, INFO, WARNING, ERROR
+
+# Directories (auto-created if missing)
+TEMP_DOWNLOAD_DIR=temp_files/
+OUTPUT_TRANSCRIPTS_DIR=output_transcripts/
+```
+
+### Model Selection Guide
+
+| Model    | Speed      | Accuracy   | VRAM  | Use Case               |
+| -------- | ---------- | ---------- | ----- | ---------------------- |
+| `tiny`   | ⚡⚡⚡⚡⚡ | ⭐⭐       | ~1GB  | Quick drafts           |
+| `base`   | ⚡⚡⚡⚡   | ⭐⭐⭐     | ~1GB  | **Default - Balanced** |
+| `small`  | ⚡⚡⚡     | ⭐⭐⭐⭐   | ~2GB  | Good quality           |
+| `medium` | ⚡⚡       | ⭐⭐⭐⭐⭐ | ~5GB  | High accuracy          |
+| `large`  | ⚡         | ⭐⭐⭐⭐⭐ | ~10GB | Best quality           |
+
+### Environment Variables Reference
+
+| Variable                 | Default               | Description                         |
+| ------------------------ | --------------------- | ----------------------------------- |
+| `WHISPER_MODEL_NAME`     | `base`                | Whisper model size                  |
+| `WHISPER_DEVICE`         | `cpu`                 | Processing device (`cpu` or `cuda`) |
+| `TEMP_DOWNLOAD_DIR`      | `temp_files/`         | Temporary files location            |
+| `OUTPUT_TRANSCRIPTS_DIR` | `output_transcripts/` | Output directory                    |
+| `LOG_LEVEL`              | `INFO`                | Logging verbosity                   |
+
+## 🔍 How It Works
+
+1. **📥 Download**: Fetches the YouTube video using `yt-dlp`
+2. **🎵 Extract**: Extracts audio from the video using FFmpeg
+3. **🤖 Transcribe**: Processes audio with Whisper AI model
+4. **💾 Save**: Saves transcription to `output_transcripts/`
+5. **🧹 Cleanup**: Automatically removes temporary files
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+<details>
+<summary><b>FFmpeg not found</b></summary>
+
+**Solution 1: Verify installation**
+
+```powershell
+ffmpeg -version
+```
+
+**Solution 2: Use direct path**
+
+```bash
+python -m yt_transcriber.cli -u "URL" --ffmpeg-location "C:\ffmpeg\bin\ffmpeg.exe"
+```
+
+**Solution 3: Add to PATH (Windows)**
+
+```powershell
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\ffmpeg\bin", [EnvironmentVariableTarget]::User)
+```
+
+</details>
+
+<details>
+<summary><b>CUDA not available</b></summary>
+
+If you have an NVIDIA GPU but CUDA isn't working:
+
+1. **Check CUDA installation:**
+
+   ```bash
+   python test/check_pytorch_cuda.py
+   ```
+
+2. **Verify PyTorch CUDA support:**
+
+   ```python
+   python -c "import torch; print(torch.cuda.is_available())"
+   ```
+
+3. **Fall back to CPU:**
+   Edit `.env`:
+   ```bash
+   WHISPER_DEVICE=cpu
+   ```
+   </details>
+
+<details>
+<summary><b>Out of memory errors</b></summary>
+
+Use a smaller model in `.env`:
+
+```bash
+WHISPER_MODEL_NAME=tiny  # or base, small
+```
+
+</details>
+
+<details>
+<summary><b>Slow transcription</b></summary>
+
+- Enable CUDA if you have an NVIDIA GPU
+- Use a smaller model (`tiny` or `base`)
+- Check system resources (RAM, CPU usage)
+</details>
+
+## 🧪 Development & Testing
+
+For development setup and testing guidelines, see [AGENTS.md](AGENTS.md).
+
+**Quick commands:**
+
+```bash
+# Setup development environment
+make setup
+
+# Run tests
+make test
+
+# Run all quality checks
+make check
+
+# See all available commands
+make help
+```
+
+### Project Structure
+
+```
+yt-video-summarizer/
+├── yt_transcriber/          # Main package
+│   ├── cli.py              # CLI entry point
+│   ├── config.py           # Configuration management
+│   ├── downloader.py       # YouTube download logic
+│   ├── transcriber.py      # Whisper transcription
+│   └── utils.py            # Utilities
+├── test/                    # Test suite
+├── temp_files/             # Temporary storage (auto-cleaned)
+├── output_transcripts/     # Transcription outputs
+└── .env                    # Configuration (create from .env.example)
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [OpenAI Whisper](https://github.com/openai/whisper) - AI model for transcription
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) - YouTube video downloader
+- [PyTorch](https://pytorch.org/) - Deep learning framework
+
+---
+
+Made with ❤️ by [Sergio Márquez](https://github.com/sergiomarquezdev)

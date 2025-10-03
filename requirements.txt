@@ -10,3 +10,12 @@ pydantic
 pydantic-settings
 numpy
 soundfile
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+responses>=0.23.0
+
+# Progress indicators
+tqdm>=4.65.0

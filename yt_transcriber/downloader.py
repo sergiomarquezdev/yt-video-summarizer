@@ -2,11 +2,11 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import yt_dlp
 
 from yt_transcriber import utils
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class DownloadResult:
     """Contiene los resultados de una descarga exitosa."""
 
     audio_path: Path
-    video_path: Optional[Path]
+    video_path: Path | None
     video_id: str
 
 
@@ -30,7 +30,7 @@ def download_and_extract_audio(
     youtube_url: str,
     temp_dir: Path,
     unique_job_id: str,
-    ffmpeg_location: Optional[str] = None,
+    ffmpeg_location: str | None = None,
 ) -> DownloadResult:
     """
     Descarga un video de YouTube, extrae su audio y lo guarda en formato WAV.
@@ -56,9 +56,7 @@ def download_and_extract_audio(
             info_dict = ydl.extract_info(youtube_url, download=False)
             video_id = info_dict.get("id")
             if not video_id:
-                raise DownloadError(
-                    f"No se pudo extraer el ID del video de la URL: {youtube_url}"
-                )
+                raise DownloadError(f"No se pudo extraer el ID del video de la URL: {youtube_url}")
         logger.info(f"Video ID extraído: {video_id}")
 
         # 2. Configurar la descarga con nombres de archivo predecibles
@@ -93,9 +91,7 @@ def download_and_extract_audio(
             download_info = ydl.extract_info(youtube_url, download=True)
             video_path_str = ydl.prepare_filename(download_info)
             video_path = (
-                Path(video_path_str)
-                if video_path_str and Path(video_path_str).exists()
-                else None
+                Path(video_path_str) if video_path_str and Path(video_path_str).exists() else None
             )
 
         # 4. Verificar el resultado
@@ -110,9 +106,7 @@ def download_and_extract_audio(
                     logger.error(
                         f"Error limpiando video '{video_path}' tras fallo de audio: {e_clean}"
                     )
-            raise DownloadError(
-                f"La extracción de audio falló para el video ID {video_id}."
-            )
+            raise DownloadError(f"La extracción de audio falló para el video ID {video_id}.")
 
         logger.info(f"Audio extraído correctamente a: {expected_audio_path}")
         if video_path:
@@ -128,7 +122,5 @@ def download_and_extract_audio(
         logger.error(f"Error de yt-dlp para '{youtube_url}': {e_yt}")
         raise DownloadError(f"yt-dlp falló: {e_yt}") from e_yt
     except Exception as e_gen:
-        logger.error(
-            f"Error inesperado en descarga para '{youtube_url}': {e_gen}", exc_info=True
-        )
+        logger.error(f"Error inesperado en descarga para '{youtube_url}': {e_gen}", exc_info=True)
         raise DownloadError(f"Error general en descarga: {e_gen}") from e_gen

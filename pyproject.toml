@@ -1,0 +1,265 @@
+[project]
+name = "yt-video-summarizer"
+version = "0.1.0"
+description = "YouTube Video Transcriber CLI using OpenAI Whisper"
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [
+    { name = "Sergio Marquez", email = "sergiomarquezdev@gmail.com" }
+]
+keywords = ["youtube", "transcription", "whisper", "ai", "cli"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "yt-dlp>=2024.0.0",
+    # OpenAI Whisper - available on PyPI
+    # Note: Whisper depends on torch, which must be installed separately (see below)
+    "openai-whisper>=20231117",
+    # PyTorch packages: MUST BE INSTALLED MANUALLY with CUDA support
+    # See installation instructions in README.md and AGENTS.md
+    # DO NOT install via uv sync - use: uv pip install torch torchvision torchaudio --find-links https://download.pytorch.org/whl/cu128
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "numpy>=1.24.0",
+    "soundfile>=0.12.0",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "responses>=0.23.0",
+    "pre-commit>=4.0.0",
+]
+
+[project.scripts]
+yt-transcriber = "yt_transcriber.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/sergiomarquezdev/yt-video-summarizer"
+Repository = "https://github.com/sergiomarquezdev/yt-video-summarizer"
+Issues = "https://github.com/sergiomarquezdev/yt-video-summarizer/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Hatchling configuration - tell it where to find the package
+[tool.hatch.build.targets.wheel]
+packages = ["yt_transcriber"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/yt_transcriber",
+    "/test",
+    "/README.md",
+    "/LICENSE",
+]
+
+# ============================================================================
+# UV Configuration - PyTorch CUDA 12.8 Support
+# ============================================================================
+# IMPORTANT: PyTorch with CUDA must be installed in a separate step after `uv sync`.
+#
+# Installation Steps:
+# 1. Run `uv sync` to install all dependencies (installs CPU-only PyTorch)
+# 2. Run `uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128 --force-reinstall`
+#    to replace with CUDA-enabled PyTorch
+#
+# Why this two-step process?
+# - UV's dependency resolver has issues with PyTorch's custom CUDA index
+# - Using --index-url as a secondary step ensures Windows compatibility
+# - This avoids version conflicts with dependencies like markupsafe
+#
+# Verification:
+# - Run `uv run python test/check_pytorch_cuda.py` to verify CUDA is available
+#
+[tool.uv]
+# No special configuration needed - PyTorch CUDA installed post-sync
+
+# ============================================================================
+# Pytest Configuration
+# ============================================================================
+# Migrated from pytest.ini for centralized configuration
+[tool.pytest.ini_options]
+# Test discovery patterns
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Test paths
+testpaths = ["test"]
+
+# Command line options
+addopts = [
+    "--verbose",
+    "--strict-markers",
+    "--cov=yt_transcriber",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+    # "--cov-fail-under=80",  # Disabled during initial test development
+]
+
+# Markers for organizing tests
+markers = [
+    "unit: Unit tests (fast, no external dependencies)",
+    "integration: Integration tests (may use external services)",
+    "slow: Slow tests (may take several seconds)",
+    "cuda: Tests requiring CUDA/GPU",
+    "cpu: Tests for CPU-only execution",
+]
+
+# Ignore patterns
+norecursedirs = [
+    ".git",
+    ".tox",
+    "dist",
+    "build",
+    "*.egg",
+    "venv",
+    ".venv",
+    "temp_files",
+    "output_transcripts",
+]
+
+# Output options
+console_output_style = "progress"
+log_cli = false
+log_cli_level = "INFO"
+
+# ============================================================================
+# Coverage Configuration
+# ============================================================================
+[tool.coverage.run]
+source = ["yt_transcriber"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+
+# ============================================================================
+# Ruff Configuration - Linting and Formatting
+# ============================================================================
+# Ruff is an extremely fast Python linter and formatter, written in Rust.
+# It replaces Black, isort, flake8, pylint, and more in a single tool.
+
+[tool.ruff]
+# Align with existing project style
+line-length = 100
+target-version = "py313"
+
+# Exclude directories from linting
+exclude = [
+    ".venv",
+    "venv",
+    "htmlcov",
+    "__pycache__",
+    "temp_files",
+    "output_transcripts",
+    ".git",
+    ".pytest_cache",
+    "dist",
+    "build",
+]
+
+[tool.ruff.lint]
+# Select rules - starting lenient, can tighten over time
+# See: https://docs.astral.sh/ruff/rules/
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "I",     # isort (import sorting)
+    "UP",    # pyupgrade (modernize syntax)
+    "B",     # flake8-bugbear (likely bugs)
+    "SIM",   # flake8-simplify
+]
+
+# Ignore specific rules that conflict with project style or Pydantic
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "B008",  # Do not perform function calls in argument defaults (Pydantic uses this)
+]
+
+[tool.ruff.lint.isort]
+# Import sorting configuration
+known-first-party = ["yt_transcriber"]
+force-single-line = false
+lines-after-imports = 2
+
+[tool.ruff.format]
+# Use double quotes (aligns with existing code)
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# ============================================================================
+# Mypy Configuration - Static Type Checking
+# ============================================================================
+# Mypy is a static type checker for Python. It finds type errors before runtime.
+# Starting with a lenient configuration and will tighten over time.
+
+[tool.mypy]
+python_version = "3.13"
+
+# Lenient mode - gradually increase strictness
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = false  # Set to true later when cleaning up
+
+# Don't require type hints everywhere (yet)
+disallow_untyped_defs = false
+disallow_any_generics = false
+check_untyped_defs = true
+
+# Be lenient with imports - many libraries lack type stubs
+ignore_missing_imports = true
+no_implicit_optional = true
+
+# Exclude directories
+exclude = [
+    "venv",
+    ".venv",
+    "htmlcov",
+    "temp_files",
+    "output_transcripts",
+    "build",
+    "dist",
+]
+
+# Show error codes to help understand issues
+show_error_codes = true
+pretty = true
+
+
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+    "ruff>=0.13.3",
+]
