@@ -9,23 +9,29 @@
 A powerful CLI tool suite for YouTube content creators:
 
 1. **Video Transcriber**: Download and transcribe YouTube videos using OpenAI's Whisper
-2. **Script Generator** (NEW): Generate optimized YouTube scripts by learning from successful videos
+2. **AI Summarizer** (NEW): Automatically generate intelligent summaries with key points and timestamps
+3. **Script Generator**: Generate optimized YouTube scripts by learning from successful videos
 
 ## ✨ Features
 
-### Web Interface (NEW)
+### Web Interface
 
 - 🌐 **Gradio web UI** for easy access from any browser
 - 📝 **Two-column layout** for transcription and script generation
 - 🎨 **Clean, intuitive interface** with real-time progress
-- 📥 **One-click downloads** for transcripts and scripts
+- 📥 **One-click downloads** for transcripts, summaries, and scripts
+- 📋 **Summary preview** with markdown formatting
 
-### Video Transcriber
+### Video Transcriber + AI Summarizer (NEW)
 
 - 🚀 **Fast transcription** with CUDA GPU acceleration support
-- 🌍 **Multi-language support** with automatic language detection
+- 🌍 **Multi-language support** (Spanish, English) with automatic detection
 - 📝 **High accuracy** using OpenAI's Whisper models (tiny to large)
-- 🔄 **Automatic cleanup** of temporary files
+- 🤖 **AI-powered summaries** with Google Gemini 1.5 Flash
+- 📊 **Structured summaries** with executive summary, key points, timestamps, and action items
+- ⏱️ **Smart timestamps** automatically inferred from video content
+- 🔄 **Automatic generation** - transcript + summary always created together
+- 🗂️ **Dual output** - separate files for transcription (.txt) and summary (.md)
 
 ### Script Generator
 
@@ -195,9 +201,9 @@ For detailed documentation, see [frontend/README.md](frontend/README.md).
 
 The tool provides two main commands:
 
-### 1️⃣ Transcribe Videos
+### 1️⃣ Transcribe Videos + AI Summarizer (NEW)
 
-Transcribe YouTube videos to text files.
+Transcribe YouTube videos to text files and automatically generate intelligent summaries with key points and timestamps.
 
 #### Basic Command
 
@@ -210,12 +216,12 @@ python -m yt_transcriber.cli transcribe --url "YOUTUBE_URL"
 | Option              | Short | Required | Description                                      |
 | ------------------- | ----- | -------- | ------------------------------------------------ |
 | `--url`             | `-u`  | ✅ Yes   | YouTube video URL                                |
-| `--language`        | `-l`  | ❌ No    | Force specific language (e.g., `en`, `es`, `fr`) |
+| `--language`        | `-l`  | ❌ No    | Force specific language (e.g., `en`, `es`)       |
 | `--ffmpeg-location` |       | ❌ No    | Custom FFmpeg path                               |
 
 #### Examples
 
-**Basic transcription (auto-detect language):**
+**Basic transcription + summary (auto-detect language):**
 
 ```bash
 python -m yt_transcriber.cli transcribe -u "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -238,14 +244,24 @@ python -m yt_transcriber.cli transcribe -u "https://www.youtube.com/watch?v=VIDE
 After successful transcription, you'll see:
 
 ```
-✅ Transcription saved: output_transcripts/VideoTitle_vid_VIDEO_ID_job_20231028123456.txt
+✅ Transcripción guardada en: output_transcripts/VideoTitle_vid_VIDEO_ID_job_20231028123456.txt
+✅ Resumen guardado en: output_summaries/VideoTitle_vid_VIDEO_ID_job_20231028123456_summary.md
+
+🎉 Archivos generados:
+  📄 Transcripción: output_transcripts/VideoTitle_vid_VIDEO_ID_job_20231028123456.txt
+  📋 Resumen: output_summaries/VideoTitle_vid_VIDEO_ID_job_20231028123456_summary.md
 ```
 
-Transcription files are saved in the `output_transcripts/` directory with a descriptive filename including:
+**Two files are always created**:
 
-- Video title
-- Video ID
-- Unique job timestamp
+1. **Transcription** (`output_transcripts/`) - Full text transcript in `.txt` format
+2. **AI Summary** (`output_summaries/`) - Structured summary in `.md` format with:
+   - 🎯 Executive summary (2-3 lines)
+   - 🔑 Key points (5-7 bullets)
+   - ⏱️ Important timestamps (5-8 moments)
+   - 💡 Conclusion
+   - ✅ Action items (3-5 next steps)
+   - 📊 Statistics (word count, duration, language)
 
 ---
 
@@ -355,6 +371,11 @@ Create a `.env` file in the project root to customize behavior:
 WHISPER_MODEL_NAME=base          # Options: tiny, base, small, medium, large
 WHISPER_DEVICE=cuda              # Options: cuda, cpu
 
+# AI Summarizer Configuration (NEW)
+GOOGLE_API_KEY=your_api_key      # Get from: https://aistudio.google.com/apikey
+SUMMARIZER_MODEL=gemini-1.5-flash # Fast and economical (recommended)
+SUMMARY_OUTPUT_DIR=output_summaries/
+
 # Logging
 LOG_LEVEL=INFO                   # Options: DEBUG, INFO, WARNING, ERROR
 
@@ -379,8 +400,11 @@ OUTPUT_TRANSCRIPTS_DIR=output_transcripts/
 | ------------------------ | --------------------- | ----------------------------------- |
 | `WHISPER_MODEL_NAME`     | `base`                | Whisper model size                  |
 | `WHISPER_DEVICE`         | `cpu`                 | Processing device (`cpu` or `cuda`) |
+| `GOOGLE_API_KEY`         | (required)            | Gemini API key for AI summarization |
+| `SUMMARIZER_MODEL`       | `gemini-1.5-flash`    | Gemini model for summaries          |
 | `TEMP_DOWNLOAD_DIR`      | `temp_files/`         | Temporary files location            |
-| `OUTPUT_TRANSCRIPTS_DIR` | `output_transcripts/` | Output directory                    |
+| `OUTPUT_TRANSCRIPTS_DIR` | `output_transcripts/` | Transcript output directory         |
+| `SUMMARY_OUTPUT_DIR`     | `output_summaries/`   | Summary output directory (NEW)      |
 | `LOG_LEVEL`              | `INFO`                | Logging verbosity                   |
 
 ## 🔍 How It Works
@@ -389,7 +413,11 @@ OUTPUT_TRANSCRIPTS_DIR=output_transcripts/
 2. **🎵 Extract**: Extracts audio from the video using FFmpeg
 3. **🤖 Transcribe**: Processes audio with Whisper AI model
 4. **💾 Save**: Saves transcription to `output_transcripts/`
-5. **🧹 Cleanup**: Automatically removes temporary files
+5. **� AI Summary** (NEW): Generates intelligent summary with Gemini 1.5 Flash
+   - Auto-detects language (Spanish/English)
+   - Extracts executive summary, key points, and timestamps
+   - Saves markdown summary to `output_summaries/`
+6. **�🧹 Cleanup**: Automatically removes temporary files
 
 ## 🔧 Troubleshooting
 

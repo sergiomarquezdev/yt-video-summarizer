@@ -1018,44 +1018,54 @@ git push
 
 ### 🟢 Not Started
 
-- [ ] **PHASE 1**: Core Implementation
-
-  - [ ] Task 1.1: Crear dataclasses
-  - [ ] Task 1.2: Implementar summarizer.py
-  - [ ] Task 1.3: Configuración settings
-  - [ ] Task 1.4: Tests unitarios básicos
-
-- [ ] **PHASE 2**: CLI Integration
-
-  - [ ] Task 2.1: Añadir subcommand
-  - [ ] Task 2.2: Wrapper function
-  - [ ] Task 2.3: Tests integración CLI
-
 - [ ] **PHASE 3**: Gradio UI Integration
-
-  - [ ] Task 3.1: Modificar gradio_app.py
-  - [ ] Task 3.2: Actualizar función UI
-  - [ ] Task 3.3: Event handlers
+  - [ ] Task 3.1: Modificar gradio_app.py para añadir componentes de summary
+  - [ ] Task 3.2: Actualizar transcribe_video_ui() para retornar 4 outputs
+  - [ ] Task 3.3: Simplificar language dropdowns (solo ES/EN)
 
 - [ ] **PHASE 4**: Testing & Documentation
-
   - [ ] Task 4.1: Suite de tests completa
   - [ ] Task 4.2: Actualizar README.md
-  - [ ] Task 4.3: Crear VIDEO_SUMMARIZATION.md
+  - [ ] Task 4.3: Actualizar frontend/README.md
   - [ ] Task 4.4: Actualizar AGENTS.md
 
 - [ ] **PHASE 5**: Polish & Deployment
-  - [ ] Task 5.1: Code quality
-  - [ ] Task 5.2: Coverage check
-  - [ ] Task 5.3: Git workflow
+  - [ ] Task 5.1: Code quality (lint, format, typecheck)
+  - [ ] Task 5.2: Coverage check (>60% total, >80% summarizer)
+  - [ ] Task 5.3: Git workflow (commit docs, push)
 
 ### 🔵 In Progress
 
-- (None yet)
+- [ ] **PHASE 4**: Testing & Documentation (NEXT)
 
 ### 🟢 Completed
 
-- (None yet)
+- [x] **PHASE 1**: Core Implementation ✅ (Completado: 2025-01-XX)
+  - [x] Task 1.1: Crear dataclasses (VideoSummary, TimestampedSection)
+  - [x] Task 1.2: Configuración settings (SUMMARIZER_MODEL, SUMMARY_OUTPUT_DIR)
+  - [x] Task 1.3: Implementar summarizer.py (370 líneas, Gemini integration)
+  - [x] Task 1.4: Tests unitarios (12 tests, 96% coverage, todos pasan ✅)
+
+- [x] **PHASE 2**: CLI Integration ✅ (Completado: 2025-01-XX)
+  - [x] Task 2.1: Modificar process_transcription() para generar summary
+  - [x] Task 2.2: Actualizar run_transcribe_command() (retorna 2 paths)
+  - [x] Task 2.3: Actualizar command_transcribe() CLI handler
+  - [x] Git commit: "feat(summarizer): add AI video summarization - Phase 1 and 2 complete" (7ec4620)
+
+- [x] **PHASE 3**: Gradio UI Integration ✅ (Completado: 2025-01-XX)
+  - [x] Task 3.1: Modificar gradio_app.py para añadir componentes de summary
+    - Added summary_preview (gr.Markdown) para vista previa del resumen
+    - Added summary_file (gr.File) para descarga del resumen
+    - Reorganized outputs: Estado + 2 botones de descarga + vista previa
+  - [x] Task 3.2: Actualizar transcribe_video_ui() para retornar 4 outputs
+    - Modified return type: tuple[str, str | None, str, str | None]
+    - Returns: (status_message, transcript_path, summary_preview, summary_path)
+    - Reads summary file to show preview in markdown
+  - [x] Task 3.3: Simplificar language dropdowns (solo ES/EN)
+    - Changed from 7 options to 3: "Auto-detectar", "Español", "English"
+    - Added LANGUAGE_MAP dict para mapear nombres UI → códigos ISO
+    - Applied mapping in transcribe_video_ui function
+  - [x] Git commit: "feat(ui): integrate summary preview and download in Gradio - Phase 3 complete" (fe5ffa0)
 
 ### 🔴 Blocked
 
@@ -1065,9 +1075,61 @@ git push
 
 ## Executor's Feedback or Assistance Requests
 
+### Progreso - 2025-01-XX
+
+**PHASE 1 COMPLETADA ✅**
+
+- Creación de dataclasses: `VideoSummary` con 12 campos (metadata, content, statistics)
+- Módulo summarizer.py: 370 líneas con funciones completas
+  - `generate_summary()` - Main entry point con Gemini API
+  - `_detect_language()` - Auto-detección ES/EN por frecuencia de palabras
+  - `_build_prompt()` - Selección de prompt template por idioma
+  - `_parse_summary_response()` - Parsing de markdown de Gemini
+  - Helpers: `_extract_section()`, `_extract_list_items()`, `_extract_timestamps()`
+  - Prompts bilingües: SUMMARY_PROMPT_ES, SUMMARY_PROMPT_EN (240 líneas)
+- Tests: 12 tests unitarios con 96% coverage
+  - TestLanguageDetection (3 tests)
+  - TestMarkdownParsing (4 tests)
+  - TestSummaryGeneration (3 tests con mock de Gemini)
+  - TestVideoSummaryDataclass (2 tests)
+  - ✅ Todos pasan sin errores
+
+**PHASE 2 COMPLETADA ✅**
+
+- Modificado `process_transcription()` para:
+  - Retornar tuple (transcript_path, summary_path)
+  - Generar summary automáticamente después de transcripción
+  - Error handling gracioso si summary falla (transcript sigue guardándose)
+- Actualizado `run_transcribe_command()` wrapper para Gradio
+- Actualizado `command_transcribe()` CLI handler con mensajes mejorados
+- Git commit realizado: 7ec4620
+
+**Tests Infrastructure: 18/18 pasan ✅**
+
+**PHASE 3 COMPLETADA ✅**
+
+- Modificado `transcribe_video_ui()` para:
+  - Retornar 4 valores en lugar de 2
+  - Leer archivo summary y mostrarlo en preview
+  - Actualizado return type annotation
+- UI Components añadidos/modificados:
+  - `summary_preview` (gr.Markdown) - Vista previa del resumen con formato
+  - `summary_file` (gr.File) - Botón de descarga del resumen
+  - Reorganizado layout: Estado → 2 botones descarga → Vista previa
+- Language dropdown simplificado:
+  - De 7 opciones a 3: "Auto-detectar", "Español", "English"
+  - Creado `LANGUAGE_MAP` dict para mapear nombres → códigos ISO
+  - Backend sigue recibiendo códigos ISO correctos
+- Git commit realizado: fe5ffa0
+
+**Próximo Paso**: PHASE 4 - Testing & Documentation
+
+---
+
 ### Questions for User
 
 ✅ **RESPONDIDAS - 2025-10-03 18:45**
+
 1. ~~¿Prefieres que los timestamps sean opcionales o siempre incluidos?~~ → **Siempre incluidos**
 2. ~~¿Qué nivel de detalle por defecto: "brief" o "detailed"?~~ → **Detallado**
 3. ~~¿Necesitas soporte para otros idiomas además de ES/EN?~~ → **NO - solo ES/EN**
