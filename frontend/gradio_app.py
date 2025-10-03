@@ -21,12 +21,20 @@ from yt_transcriber.config import settings
 logger = logging.getLogger(__name__)
 
 
+# Language mapping: UI names -> ISO codes
+LANGUAGE_MAP = {
+    "Auto-detectar": None,
+    "Español": "es",
+    "English": "en",
+}
+
+
 def transcribe_video_ui(
     url: str,
     language: str,
     ffmpeg_location: str,
-) -> tuple[str, str | None]:
-    """Transcribe a YouTube video via Gradio UI.
+) -> tuple[str, str | None, str, str | None]:
+    """Transcribe a YouTube video via Gradio UI and generate AI summary.
 
     Args:
         url: YouTube video URL
@@ -34,36 +42,45 @@ def transcribe_video_ui(
         ffmpeg_location: Optional custom FFmpeg path
 
     Returns:
-        Tuple of (status_message, transcript_path)
+        Tuple of (status_message, transcript_path, summary_preview, summary_path)
     """
     try:
         # Validate inputs
         if not url or not url.strip():
-            return "❌ Error: Debes proporcionar una URL de YouTube", None
+            return "❌ Error: Debes proporcionar una URL de YouTube", None, "", None
 
         # Prepare arguments
         url = url.strip()
-        lang = language.strip() if language and language.strip() else None
+        lang = LANGUAGE_MAP.get(language, None)  # Map UI name to ISO code
         ffmpeg = ffmpeg_location.strip() if ffmpeg_location and ffmpeg_location.strip() else None
 
-        # Run transcription
+        # Run transcription and summary generation
         logger.info(f"Starting transcription for URL: {url}")
-        transcript_path = run_transcribe_command(
+        transcript_path, summary_path = run_transcribe_command(
             url=url,
             language=lang,
             ffmpeg_location=ffmpeg,
         )
 
-        # Read transcript content for display
+        # Read summary content for preview
+        summary_preview = ""
+        if summary_path and Path(summary_path).exists():
+            with open(summary_path, "r", encoding="utf-8") as f:
+                summary_preview = f.read()
+
+        # Build status message
         if transcript_path and Path(transcript_path).exists():
-            success_msg = f"✅ Transcripción completada!\n\n📄 Archivo: {transcript_path}\n\n"
-            return success_msg, transcript_path
+            success_msg = f"✅ Transcripción y resumen completados!\n\n"
+            success_msg += f"📄 Transcripción: {transcript_path}\n"
+            if summary_path:
+                success_msg += f"📋 Resumen: {summary_path}\n"
+            return success_msg, transcript_path, summary_preview, summary_path
         else:
-            return "❌ Error: La transcripción falló (archivo no generado)", None
+            return "❌ Error: La transcripción falló (archivo no generado)", None, "", None
 
     except Exception as e:
         logger.error(f"Transcription error in UI: {e}", exc_info=True)
-        return f"❌ Error durante la transcripción: {str(e)}", None
+        return f"❌ Error durante la transcripción: {str(e)}", None, "", None
 
 
 def generate_script_ui(
@@ -229,7 +246,7 @@ with gr.Blocks(
 
                 transcribe_language = gr.Dropdown(
                     label="Idioma",
-                    choices=["Auto-detectar", "es", "en", "fr", "de", "it", "pt"],
+                    choices=["Auto-detectar", "Español", "English"],
                     value="Auto-detectar",
                     info="Detección automática recomendada",
                 )
@@ -248,17 +265,28 @@ with gr.Blocks(
             )
 
             # Output Group
-            gr.Markdown("### 📄 Resultado")
+            gr.Markdown("### 📄 Resultados")
             transcribe_output = gr.Textbox(
-                label="Transcripción",
-                lines=6,
+                label="Estado",
+                lines=4,
                 interactive=False,
-                show_copy_button=True,
+                show_copy_button=False,
             )
 
-            transcribe_file = gr.File(
-                label="Descargar archivo",
-                interactive=False,
+            with gr.Row():
+                transcribe_file = gr.File(
+                    label="📄 Descargar Transcripción",
+                    interactive=False,
+                )
+
+                summary_file = gr.File(
+                    label="📋 Descargar Resumen",
+                    interactive=False,
+                )
+
+            summary_preview = gr.Markdown(
+                label="Vista Previa del Resumen",
+                value="",
             )
 
         # ===== RIGHT COLUMN: GENERATE SCRIPT =====
@@ -348,6 +376,8 @@ with gr.Blocks(
         outputs=[
             transcribe_output,
             transcribe_file,
+            summary_preview,
+            summary_file,
         ],
         api_name="transcribe",
     )
