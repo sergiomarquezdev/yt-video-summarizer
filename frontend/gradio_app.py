@@ -91,7 +91,14 @@ def transcribe_video_ui(
                 summary_path_es,
             )
         else:
-            return "❌ Error: La transcripción falló (archivo no generado)", None, "", None, "", None
+            return (
+                "❌ Error: La transcripción falló (archivo no generado)",
+                None,
+                "",
+                None,
+                "",
+                None,
+            )
 
     except Exception as e:
         logger.error(f"Transcription error in UI: {e}", exc_info=True)

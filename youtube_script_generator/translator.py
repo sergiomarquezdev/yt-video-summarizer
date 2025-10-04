@@ -32,7 +32,9 @@ class ScriptTranslator:
         genai.configure(api_key=settings.GOOGLE_API_KEY)
 
         # Use lite model for summary translation, flash for script translation
-        model_name = settings.TRANSLATOR_MODEL if use_translation_model else settings.SUMMARIZER_MODEL
+        model_name = (
+            settings.TRANSLATOR_MODEL if use_translation_model else settings.SUMMARIZER_MODEL
+        )
         self.model = genai.GenerativeModel(model_name)
 
         logger.info(f"ScriptTranslator initialized with model: {model_name}")
@@ -197,7 +199,7 @@ OUTPUT: Only the translated text in Spanish, nothing else."""
 
         try:
             response = self.model.generate_content(prompt)
-            translated = response.text.strip()
+            translated = str(response.text).strip()
 
             if not translated:
                 logger.warning(f"Empty translation for {block_type}, using original")
@@ -249,7 +251,7 @@ OUTPUT: Only the translated script in Spanish, maintaining exact markdown struct
 
         try:
             response = self.model.generate_content(prompt)
-            translated = response.text.strip()
+            translated = str(response.text).strip()
 
             if not translated:
                 raise TranslationError("Empty translation response from Gemini")
@@ -285,7 +287,7 @@ OUTPUT: Only the translated title, nothing else."""
 
         try:
             response = self.model.generate_content(prompt)
-            translated = response.text.strip()
+            translated = str(response.text).strip()
 
             # Remove quotes if Gemini added them
             translated = re.sub(r'^["\'](.*)["\']$', r"\1", translated)
@@ -320,7 +322,7 @@ OUTPUT: Only the translated description, nothing else."""
 
         try:
             response = self.model.generate_content(prompt)
-            translated = response.text.strip()
+            translated = str(response.text).strip()
 
             return translated if translated else description
 

@@ -4,6 +4,7 @@ import json
 import logging
 from collections import Counter
 from datetime import UTC, datetime
+from typing import cast
 
 import google.generativeai as genai
 
@@ -135,7 +136,7 @@ class PatternSynthesizer:
             )
 
         # Sort by weighted score descending
-        weighted_hooks.sort(key=lambda x: x["weighted_score"], reverse=True)
+        weighted_hooks.sort(key=lambda x: cast(float, x.get("weighted_score", 0.0)), reverse=True)
 
         return weighted_hooks[:top_n]
 
@@ -149,16 +150,19 @@ class PatternSynthesizer:
             Dict with structural metrics
         """
         # Weighted averages
-        hook_durations = [a.hook_end - a.hook_start for a in analyses if a.hook_end > 0]
-        intro_ends = [a.intro_end for a in analyses if a.intro_end > 0]
+        hook_durations = [float(a.hook_end - a.hook_start) for a in analyses if a.hook_end > 0]
+        intro_ends = [float(a.intro_end) for a in analyses if a.intro_end > 0]
         num_sections = [len(a.sections) for a in analyses if a.sections]
-        conclusion_starts = [a.conclusion_start for a in analyses if a.conclusion_start > 0]
+        conclusion_starts = [float(a.conclusion_start) for a in analyses if a.conclusion_start > 0]
 
-        def weighted_avg(values: list, weights: list) -> float:
+        def weighted_avg(values: list[float], weights: list[float]) -> float:
             """Calculate weighted average."""
             if not values:
                 return 0.0
-            return sum(v * w for v, w in zip(values, weights, strict=True)) / sum(weights)
+            total_weight = sum(weights)
+            if total_weight == 0:
+                return 0.0
+            return sum(v * w for v, w in zip(values, weights, strict=True)) / total_weight
 
         # Use effectiveness_score as weights
         weights = [a.effectiveness_score for a in analyses]
@@ -197,7 +201,7 @@ class PatternSynthesizer:
         Returns:
             List of dicts with CTA info sorted by frequency
         """
-        cta_counter = Counter()
+        cta_counter: Counter[str] = Counter()
         cta_details = {}
 
         for analysis in analyses:
@@ -251,9 +255,9 @@ class PatternSynthesizer:
         Returns:
             Dict with aggregated vocabulary
         """
-        technical_counter = Counter()
-        phrases_counter = Counter()
-        transitions_counter = Counter()
+        technical_counter: Counter[str] = Counter()
+        phrases_counter: Counter[str] = Counter()
+        transitions_counter: Counter[str] = Counter()
 
         for analysis in analyses:
             # Weight by effectiveness score
@@ -297,7 +301,7 @@ class PatternSynthesizer:
         Returns:
             List of dicts with technique info
         """
-        technique_counter = Counter()
+        technique_counter: Counter[str] = Counter()
         technique_descriptions = {}
 
         for analysis in analyses:
@@ -336,8 +340,8 @@ class PatternSynthesizer:
         Returns:
             Dict with SEO patterns
         """
-        keyword_counter = Counter()
-        tag_counter = Counter()
+        keyword_counter: Counter[str] = Counter()
+        tag_counter: Counter[str] = Counter()
 
         for analysis in analyses:
             # Weight by effectiveness score
@@ -482,7 +486,7 @@ Basado en todos los patrones, proporciona:
 
         try:
             response = self.model.generate_content(prompt)
-            report = response.text.strip()
+            report = str(response.text.strip())
             logger.info("Synthesis report generated successfully")
             return report
 
